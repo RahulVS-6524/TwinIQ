@@ -3,6 +3,19 @@ import "./App.css";
 
 const API_BASE = "http://localhost:8081/api";
 
+const inrWholeFormatter = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  maximumFractionDigits: 0,
+});
+
+const inrDecimalFormatter = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
 export default function App() {
   const [businesses, setBusinesses] = useState([]);
   
@@ -328,8 +341,12 @@ export default function App() {
     }
   };
 
-  const formatCurrency = (val) =>
-    val != null ? `$${parseFloat(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "-";
+  const formatCurrency = (val) => {
+    if (val == null) return "-";
+    const num = parseFloat(val);
+    if (isNaN(num)) return "-";
+    return (num % 1 === 0 ? inrWholeFormatter : inrDecimalFormatter).format(num);
+  };
 
   const formatPct = (val) =>
     val != null ? `${parseFloat(val).toFixed(1)}%` : "-";
@@ -542,8 +559,8 @@ export default function App() {
                 <h3>📈 Snapshot Evolution Horizon (Revenue & Profit Margin Trajectory)</h3>
                 <div className="chart-canvas-container">
                   <svg className="trend-svg" viewBox="0 0 800 180">
-                    <line x1="50" y1="140" x2="750" y2="140" stroke="#334155" strokeWidth="1" />
-                    <line x1="50" y1="40" x2="750" y2="40" stroke="#334155" strokeWidth="1" strokeDasharray="4" />
+                    <line x1="50" y1="140" x2="750" y2="140" stroke="#E2E8F0" strokeWidth="1" />
+                    <line x1="50" y1="40" x2="750" y2="40" stroke="#E2E8F0" strokeWidth="1" strokeDasharray="4" />
                     
                     {/* Render dots and lines */}
                     {snapshots.map((s, i) => {
@@ -552,11 +569,11 @@ export default function App() {
                       const yRev = 140 - revNorm;
                       return (
                         <g key={s.id}>
-                          <circle cx={x} cy={yRev} r="6" fill="#38bdf8" />
-                          <text x={x} y={yRev - 12} fill="#e2e8f0" fontSize="11" textAnchor="middle">
-                            ${(parseFloat(s.revenue) / 1000).toFixed(0)}k
+                          <circle cx={x} cy={yRev} r="6" fill="#4F46E5" />
+                          <text x={x} y={yRev - 12} fill="#0F172A" fontSize="11" fontWeight="700" textAnchor="middle">
+                            ₹{(parseFloat(s.revenue) / 1000).toFixed(0)}k
                           </text>
-                          <text x={x} y="160" fill="#94a3b8" fontSize="11" textAnchor="middle">
+                          <text x={x} y="160" fill="#64748B" fontSize="11" textAnchor="middle">
                             Snap #{s.id} ({formatPct(s.profitMargin)})
                           </text>
                         </g>
@@ -564,7 +581,7 @@ export default function App() {
                     })}
                   </svg>
                   <div className="chart-legend">
-                    <span className="legend-item"><span className="legend-dot" style={{ background: "#38bdf8" }}></span> Projected / Captured Revenue Trend</span>
+                    <span className="legend-item"><span className="legend-dot" style={{ background: "#4F46E5" }}></span> Projected / Captured Revenue Trend</span>
                   </div>
                 </div>
               </div>
@@ -1179,7 +1196,7 @@ export default function App() {
 
                   <div className="form-row-2">
                     <div className="form-group">
-                      <label>Realized Revenue ($)</label>
+                      <label>Realized Revenue (₹)</label>
                       <input
                         type="number"
                         step="0.01"
@@ -1219,7 +1236,7 @@ export default function App() {
                     </div>
 
                     <div className="form-group">
-                      <label>Realized CAC ($)</label>
+                      <label>Realized CAC (₹)</label>
                       <input
                         type="number"
                         step="0.01"

@@ -43,9 +43,24 @@ public class DecisionService {
         Simulation simulation = simulationRepository.findById(request.getSimulationId())
                 .orElseThrow(() -> new ResourceNotFoundException("Simulation not found with id: " + request.getSimulationId()));
 
+        if (!scenario.getBusiness().getId().equals(businessId)) {
+            throw new ResourceNotFoundException("Scenario " + request.getScenarioId() + " does not belong to business " + businessId);
+        }
+
+        if (!simulation.getBusiness().getId().equals(businessId)) {
+            throw new ResourceNotFoundException("Simulation " + request.getSimulationId() + " does not belong to business " + businessId);
+        }
+
+        if (!simulation.getScenario().getId().equals(scenario.getId())) {
+            throw new ResourceNotFoundException("Simulation " + request.getSimulationId() + " does not belong to scenario " + request.getScenarioId());
+        }
+
         Recommendation recommendation = null;
         if (request.getRecommendationId() != null) {
             recommendation = recommendationRepository.findById(request.getRecommendationId()).orElse(null);
+            if (recommendation != null && !recommendation.getBusiness().getId().equals(businessId)) {
+                throw new ResourceNotFoundException("Recommendation " + request.getRecommendationId() + " does not belong to business " + businessId);
+            }
         } else {
             recommendation = recommendationRepository.findBySimulation_Id(simulation.getId()).orElse(null);
         }

@@ -2,8 +2,6 @@
 -- PostgreSQL database dump
 --
 
-\restrict mGQTcto3XvUQrP0XhjmQf7OnU7SjeYhYg35k4LgZJoWHZlCVPaL2zZ7wUrhsSRa
-
 -- Dumped from database version 16.15
 -- Dumped by pg_dump version 16.15
 
@@ -658,6 +656,4 @@ ALTER TABLE ONLY public.twin_evolution
 --
 -- PostgreSQL database dump complete
 --
-
-\unrestrict mGQTcto3XvUQrP0XhjmQf7OnU7SjeYhYg35k4LgZJoWHZlCVPaL2zZ7wUrhsSRa
 

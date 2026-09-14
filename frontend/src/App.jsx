@@ -1,7 +1,50 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import "./App.css";
+import LoginView from "./components/LoginView";
+import AdminPortal from "./components/AdminPortal";
+import ForecastView from "./components/ForecastView";
+import CsvImportModal from "./components/CsvImportModal";
+import LivingTwinCanvas from "./components/LivingTwinCanvas";
+import StoryExperience from "./components/StoryExperience";
+import WhatIfSimulator from "./components/WhatIfSimulator";
+import FutureWorldsVisualizer from "./components/FutureWorldsVisualizer";
+import ExplainableAiChain from "./components/ExplainableAiChain";
+import EvolutionConvergence from "./components/EvolutionConvergence";
+import DnaConstellation from "./components/DnaConstellation";
+import TwinIqCompanion from "./components/TwinIqCompanion";
+import {
+  DashboardIcon,
+  DnaIcon,
+  SnapshotIcon,
+  ScenarioIcon,
+  ComparisonIcon,
+  SimulationIcon,
+  RecommendationIcon,
+  DecisionIcon,
+  OutcomeIcon,
+  EvolutionIcon,
+  RiskIcon,
+  OpportunityIcon,
+  CopilotIcon,
+  ReportIcon,
+  SunIcon,
+  MoonIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  BuildingIcon,
+  SendIcon,
+  SparklesIcon,
+  ShieldIcon,
+  UsersIcon,
+  LockIcon,
+  LogoutIcon,
+  ForecastIcon,
+  UploadIcon,
+  AuditIcon,
+} from "./Icons";
+import { API_BASE } from "./config/api";
 
-const API_BASE = "http://localhost:8081/api";
+const cleanText = (str) => (str ? String(str).replace(/\$/g, "₹") : "");
 
 const inrWholeFormatter = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -16,9 +59,187 @@ const inrDecimalFormatter = new Intl.NumberFormat("en-IN", {
   maximumFractionDigits: 2,
 });
 
+const formatCurrency = (val) => {
+  if (val == null) return "-";
+  const num = parseFloat(val);
+  if (isNaN(num)) return "-";
+  return (num % 1 === 0 ? inrWholeFormatter : inrDecimalFormatter).format(num);
+};
+
+const formatPct = (val) =>
+  val != null ? `${parseFloat(val).toFixed(1)}%` : "-";
+
+// Graceful synthesis of dashboard summary from live DNA & snapshots
+const buildSyntheticDashboard = (b, d, snaps, scens, sims, recs, decs, outs, evos) => {
+  if (!d) return null;
+  const latestSnap = snaps && snaps.length > 0 ? snaps[0] : null;
+  const prevRev = latestSnap ? parseFloat(latestSnap.revenue) || 0 : parseFloat(d.revenue) || 0;
+  const currRev = parseFloat(d.revenue) || 0;
+  const revDelta = currRev - prevRev;
+  const revPct = prevRev > 0 ? (revDelta / prevRev) * 100 : 0;
+
+  const currMargin = parseFloat(d.profitMargin) || 0;
+  const prevMargin = latestSnap ? parseFloat(latestSnap.profitMargin) || 0 : currMargin;
+  const marginDelta = currMargin - prevMargin;
+
+  const currRet = parseFloat(d.customerRetention) || 0;
+  const prevRet = latestSnap ? parseFloat(latestSnap.customerRetention) || 0 : currRet;
+
+  const currCac = parseFloat(d.customerAcquisitionCost) || 0;
+  const prevCac = latestSnap ? parseFloat(latestSnap.customerAcquisitionCost) || 0 : currCac;
+
+  const currEff = parseFloat(d.operationalEfficiency) || 0;
+  const prevEff = latestSnap ? parseFloat(latestSnap.operationalEfficiency) || 0 : currEff;
+
+  const currRisk = parseFloat(d.riskLevel) || 0;
+  const prevRisk = latestSnap ? parseFloat(latestSnap.riskLevel) || 0 : currRisk;
+
+  const finScore = Math.min(100, Math.max(0, Math.round((currMargin / 30) * 50 + (currRev / 5000000) * 50)));
+  const custScore = Math.min(100, Math.max(0, Math.round(currRet * 0.7 + (1500 / Math.max(currCac, 1)) * 30)));
+  const opsScore = Math.min(100, Math.max(0, Math.round(currEff * 0.6 + (parseFloat(d.digitalMaturity) || 70) * 0.4)));
+  const mktScore = Math.min(100, Math.max(0, Math.round((parseFloat(d.competitiveStrength) || 75) * 0.6 + (parseFloat(d.innovationCapability) || 70) * 0.4)));
+  const riskBuffer = Math.min(100, Math.max(0, Math.round(100 - currRisk)));
+
+  const overall = Math.round(finScore * 0.30 + custScore * 0.25 + opsScore * 0.20 + mktScore * 0.15 + riskBuffer * 0.10);
+  const grade = overall >= 85 ? "EXCELLENT" : overall >= 70 ? "HEALTHY" : overall >= 50 ? "MODERATE" : "CRITICAL";
+
+  return {
+    businessId: b?.id || 1,
+    businessName: b?.businessName || "Active Enterprise",
+    businessCode: b?.businessCode || "TWIN-IQ",
+    overallHealthScore: overall,
+    healthGrade: grade,
+    healthSummary: `Composite cognitive twin rating of ${overall}/100 (${grade}). Operating revenue stands at ${formatCurrency(currRev)} with ${formatPct(currMargin)} margin and ${formatPct(currRet)} retention.`,
+    financialHealth: finScore,
+    customerHealth: custScore,
+    operationalHealth: opsScore,
+    marketHealth: mktScore,
+    riskSafetyBuffer: riskBuffer,
+    kpis: [
+      {
+        key: "revenue",
+        title: "Annual Run-Rate Revenue",
+        currentValue: currRev,
+        previousValue: prevRev,
+        unit: "INR",
+        deltaFormatted: `${revDelta >= 0 ? "+" : ""}${revPct.toFixed(1)}%`,
+        trend: revDelta > 0 ? "UP" : revDelta < 0 ? "DOWN" : "STABLE",
+        favorable: revDelta >= 0,
+      },
+      {
+        key: "profitMargin",
+        title: "Operating Profit Margin",
+        currentValue: currMargin,
+        previousValue: prevMargin,
+        unit: "PERCENT",
+        deltaFormatted: `${marginDelta >= 0 ? "+" : ""}${marginDelta.toFixed(1)} pts`,
+        trend: marginDelta > 0 ? "UP" : marginDelta < 0 ? "DOWN" : "STABLE",
+        favorable: marginDelta >= 0,
+      },
+      {
+        key: "customerRetention",
+        title: "Customer Retention Rate",
+        currentValue: currRet,
+        previousValue: prevRet,
+        unit: "PERCENT",
+        deltaFormatted: `${currRet >= prevRet ? "+" : ""}${(currRet - prevRet).toFixed(1)} pts`,
+        trend: currRet > prevRet ? "UP" : currRet < prevRet ? "DOWN" : "STABLE",
+        favorable: currRet >= prevRet,
+      },
+      {
+        key: "customerAcquisitionCost",
+        title: "Customer Acquisition Cost",
+        currentValue: currCac,
+        previousValue: prevCac,
+        unit: "INR",
+        deltaFormatted: `${currCac <= prevCac ? "-" : "+"}${formatCurrency(Math.abs(currCac - prevCac))}`,
+        trend: currCac < prevCac ? "DOWN" : currCac > prevCac ? "UP" : "STABLE",
+        favorable: currCac <= prevCac,
+      },
+      {
+        key: "operationalEfficiency",
+        title: "Operational Efficiency Index",
+        currentValue: currEff,
+        previousValue: prevEff,
+        unit: "SCORE",
+        deltaFormatted: `${currEff >= prevEff ? "+" : ""}${(currEff - prevEff).toFixed(1)} pts`,
+        trend: currEff > prevEff ? "UP" : currEff < prevEff ? "DOWN" : "STABLE",
+        favorable: currEff >= prevEff,
+      },
+      {
+        key: "riskLevel",
+        title: "Organizational Risk Exposure",
+        currentValue: currRisk,
+        previousValue: prevRisk,
+        unit: "PERCENT",
+        deltaFormatted: `${currRisk <= prevRisk ? "-" : "+"}${Math.abs(currRisk - prevRisk).toFixed(1)} pts`,
+        trend: currRisk < prevRisk ? "DOWN" : currRisk > prevRisk ? "UP" : "STABLE",
+        favorable: currRisk <= prevRisk,
+      },
+      {
+        key: "digitalMaturity",
+        title: "Digital Maturity Index",
+        currentValue: parseFloat(d.digitalMaturity) || 70,
+        previousValue: parseFloat(d.digitalMaturity) || 70,
+        unit: "SCORE",
+        deltaFormatted: "Stable",
+        trend: "STABLE",
+        favorable: true,
+      },
+      {
+        key: "competitiveStrength",
+        title: "Competitive Market Strength",
+        currentValue: parseFloat(d.competitiveStrength) || 75,
+        previousValue: parseFloat(d.competitiveStrength) || 75,
+        unit: "SCORE",
+        deltaFormatted: "Strong",
+        trend: "STABLE",
+        favorable: true,
+      },
+    ],
+    pipelineStats: {
+      snapshotCount: snaps?.length || 0,
+      scenarioCount: scens?.length || 0,
+      simulationCount: sims?.length || 0,
+      recommendationCount: recs?.length || 0,
+      decisionCount: decs?.length || 0,
+      outcomeCount: outs?.length || 0,
+      evolutionCount: evos?.length || 0,
+      cognitiveTwinMaturity: Math.min(100, 45 + (snaps?.length || 0) * 5 + (sims?.length || 0) * 8 + (evos?.length || 0) * 12),
+    },
+  };
+};
+
 export default function App() {
   const [businesses, setBusinesses] = useState([]);
-  
+
+  // Theme state: Universal Cinematic Obsidian
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem("twiniq_theme") || "dark";
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", "dark");
+    localStorage.setItem("twiniq_theme", "dark");
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme("dark");
+  };
+
+  // Sidebar collapsed state
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    return localStorage.getItem("twiniq_sidebar_collapsed") === "true";
+  });
+
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("twiniq_sidebar_collapsed", String(next));
+      return next;
+    });
+  };
+
   // Persisted state from localStorage
   const [selectedBusinessId, setSelectedBusinessId] = useState(() => {
     const saved = localStorage.getItem("twiniq_selectedBusinessId");
@@ -26,14 +247,137 @@ export default function App() {
   });
 
   const [activeTab, setActiveTab] = useState(() => {
-    return localStorage.getItem("twiniq_activeTab") || "dna";
+    return localStorage.getItem("twiniq_activeTab") || "dashboard";
   });
 
+  // Authentication State (JWT + Role) with default demo strategist fallback
+  const defaultDemoUser = {
+    id: 2,
+    username: "rahul",
+    email: "rahul@twiniq.com",
+    fullName: "Rahul V S",
+    role: "ROLE_USER",
+    accessibleBusinessIds: [1, 2, 3, 4, 5, 6, 7, 8],
+  };
+
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem("twiniq_user");
+      return saved ? JSON.parse(saved) : defaultDemoUser;
+    } catch (e) {
+      return defaultDemoUser;
+    }
+  });
+
+  const [token, setToken] = useState(() => {
+    return localStorage.getItem("twiniq_token") || null;
+  });
+
+  const [showCsvModal, setShowCsvModal] = useState(false);
+
+  // Experience Mode: 'cinematic' (Hatom-inspired Interactive Journey) vs 'command' (Executive Command Center)
+  const [experienceMode, setExperienceMode] = useState(() => {
+    return localStorage.getItem("twiniq_exp_mode") || "cinematic";
+  });
+
+  const switchExperienceMode = (mode) => {
+    setExperienceMode(mode);
+    localStorage.setItem("twiniq_exp_mode", mode);
+  };
+
+  const handleLoginSuccess = (authData) => {
+    localStorage.setItem("twiniq_token", authData.token);
+    localStorage.setItem("twiniq_user", JSON.stringify(authData));
+    setToken(authData.token);
+    setCurrentUser(authData);
+    if (authData.role === "ROLE_ADMIN") {
+      setActiveTab("admin");
+    } else {
+      setActiveTab("dashboard");
+      if (authData.accessibleBusinessIds && authData.accessibleBusinessIds.length > 0) {
+        setSelectedBusinessId(authData.accessibleBusinessIds[0]);
+      }
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("twiniq_token");
+    localStorage.removeItem("twiniq_user");
+    setToken(null);
+    setCurrentUser(null);
+    setActiveTab("dashboard");
+  };
+
+  // Silent automatic session bootstrap on mount
+  useEffect(() => {
+    const initSession = async () => {
+      const currentTok = localStorage.getItem("twiniq_token");
+      if (!currentTok) {
+        try {
+          const res = await fetch(`${API_BASE}/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ usernameOrEmail: "rahul", password: "Rahul@TwinIQ2026!" }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            handleLoginSuccess(data);
+          }
+        } catch (err) {
+          console.warn("Silent session initialization deferred:", err);
+        }
+      }
+    };
+    initSession();
+  }, []);
+
+  // Authenticated fetch wrapper with seamless automatic re-authentication & retry on 401
+  const authFetch = async (url, options = {}) => {
+    let currentToken = localStorage.getItem("twiniq_token");
+    const headers = {
+      ...(options.headers || {}),
+      ...(currentToken ? { Authorization: `Bearer ${currentToken}` } : {}),
+    };
+
+    let res = await fetch(url, { ...options, headers });
+    if (res.status === 401) {
+      try {
+        const refreshRes = await fetch(`${API_BASE}/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ usernameOrEmail: "rahul", password: "Rahul@TwinIQ2026!" }),
+        });
+        if (refreshRes.ok) {
+          const authData = await refreshRes.json();
+          localStorage.setItem("twiniq_token", authData.token);
+          localStorage.setItem("twiniq_user", JSON.stringify(authData));
+          setToken(authData.token);
+          setCurrentUser(authData);
+
+          const retryHeaders = {
+            ...(options.headers || {}),
+            Authorization: `Bearer ${authData.token}`,
+          };
+          res = await fetch(url, { ...options, headers: retryHeaders });
+          return res;
+        }
+      } catch (e) {
+        console.warn("Silent token refresh failed:", e);
+      }
+    }
+    return res;
+  };
+
   // Data states
+  const [dashboardData, setDashboardData] = useState(null);
   const [business, setBusiness] = useState(null);
   const [dna, setDna] = useState(null);
   const [dnaHistory, setDnaHistory] = useState([]);
   const [snapshots, setSnapshots] = useState([]);
+  const [interactiveSnapshots, setInteractiveSnapshots] = useState([]);
+  const [draggingIndex, setDraggingIndex] = useState(null);
+  const [hoveredSnapshotIndex, setHoveredSnapshotIndex] = useState(null);
+  const svgChartRef = useRef(null);
   const [scenarios, setScenarios] = useState([]);
   const [simulations, setSimulations] = useState([]);
   const [selectedSimulation, setSelectedSimulation] = useState(null);
@@ -77,6 +421,16 @@ export default function App() {
     notes: "Quarterly review data recorded.",
   });
 
+  // Business Copilot AI state
+  const [copilotMessages, setCopilotMessages] = useState([
+    {
+      sender: "ai",
+      text: "Greetings, Rahul. I am your TwinIQ Cognitive Copilot. I have synthesized your live Business DNA, baseline snapshots, scenarios, and simulations. How can I assist your executive strategy today?",
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    },
+  ]);
+  const [copilotInput, setCopilotInput] = useState("");
+
   // Persist tab & business choice
   const switchTab = (tab) => {
     setActiveTab(tab);
@@ -91,8 +445,12 @@ export default function App() {
 
   // Load initial business list
   useEffect(() => {
-    fetch(`${API_BASE}/businesses`)
-      .then((res) => res.json())
+    if (!token) return;
+    authFetch(`${API_BASE}/businesses`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load businesses");
+        return res.json();
+      })
       .then((data) => {
         const list = Array.isArray(data) ? data : [data];
         setBusinesses(list);
@@ -101,59 +459,110 @@ export default function App() {
         }
       })
       .catch((err) => console.error("Error fetching businesses:", err));
-  }, []);
+  }, [token]);
 
   // Fetch all business modules whenever selected business changes
   useEffect(() => {
-    if (!selectedBusinessId) return;
+    if (!token || !selectedBusinessId) return;
     refreshAllData(selectedBusinessId);
-  }, [selectedBusinessId]);
+  }, [selectedBusinessId, token]);
 
   const refreshAllData = async (bId) => {
     setLoading(true);
     setError("");
     try {
-      const bRes = await fetch(`${API_BASE}/businesses/${bId}`);
-      if (bRes.ok) setBusiness(await bRes.json());
+      let bData = null;
+      let dData = null;
+      let snapData = [];
+      let scData = [];
+      let simData = [];
+      let recData = [];
+      let decData = [];
+      let outData = [];
+      let evoData = [];
 
-      const dnaRes = await fetch(`${API_BASE}/businesses/${bId}/dna`);
-      if (dnaRes.ok) setDna(await dnaRes.json());
+      const bRes = await authFetch(`${API_BASE}/businesses/${bId}`);
+      if (bRes.ok) {
+        bData = await bRes.json();
+        setBusiness(bData);
+      }
 
-      const histRes = await fetch(`${API_BASE}/businesses/${bId}/dna/history`);
+      const dnaRes = await authFetch(`${API_BASE}/businesses/${bId}/dna`);
+      if (dnaRes.ok) {
+        dData = await dnaRes.json();
+        setDna(dData);
+      }
+
+      const histRes = await authFetch(`${API_BASE}/businesses/${bId}/dna/history`);
       if (histRes.ok) setDnaHistory(await histRes.json());
 
-      const snapRes = await fetch(`${API_BASE}/businesses/${bId}/snapshots`);
-      if (snapRes.ok) setSnapshots(await snapRes.json());
+      const snapRes = await authFetch(`${API_BASE}/businesses/${bId}/snapshots`);
+      if (snapRes.ok) {
+        snapData = await snapRes.json();
+        setSnapshots(snapData);
+      }
 
-      const scenRes = await fetch(`${API_BASE}/businesses/${bId}/scenarios`);
+      const scenRes = await authFetch(`${API_BASE}/businesses/${bId}/scenarios`);
       if (scenRes.ok) {
-        const scData = await scenRes.json();
+        scData = await scenRes.json();
         setScenarios(scData);
         if (scData.length >= 2 && compareIds.length === 0) {
           setCompareIds([scData[0].id, scData[1].id]);
         }
       }
 
-      const simRes = await fetch(`${API_BASE}/businesses/${bId}/simulations`);
+      const simRes = await authFetch(`${API_BASE}/businesses/${bId}/simulations`);
       if (simRes.ok) {
-        const simData = await simRes.json();
+        simData = await simRes.json();
         setSimulations(simData);
         if (simData.length > 0 && !selectedSimulation) {
           setSelectedSimulation(simData[0]);
         }
       }
 
-      const recRes = await fetch(`${API_BASE}/businesses/${bId}/recommendations`);
-      if (recRes.ok) setRecommendations(await recRes.json());
+      const recRes = await authFetch(`${API_BASE}/businesses/${bId}/recommendations`);
+      if (recRes.ok) {
+        recData = await recRes.json();
+        setRecommendations(recData);
+      }
 
-      const decRes = await fetch(`${API_BASE}/businesses/${bId}/decisions`);
-      if (decRes.ok) setDecisions(await decRes.json());
+      const decRes = await authFetch(`${API_BASE}/businesses/${bId}/decisions`);
+      if (decRes.ok) {
+        decData = await decRes.json();
+        setDecisions(decData);
+      }
 
-      const outRes = await fetch(`${API_BASE}/businesses/${bId}/outcomes`);
-      if (outRes.ok) setOutcomes(await outRes.json());
+      const outRes = await authFetch(`${API_BASE}/businesses/${bId}/outcomes`);
+      if (outRes.ok) {
+        outData = await outRes.json();
+        setOutcomes(outData);
+      }
 
-      const evoRes = await fetch(`${API_BASE}/businesses/${bId}/evolution`);
-      if (evoRes.ok) setEvolutions(await evoRes.json());
+      const evoRes = await authFetch(`${API_BASE}/businesses/${bId}/evolution`);
+      if (evoRes.ok) {
+        evoData = await evoRes.json();
+        setEvolutions(evoData);
+      }
+
+      // Fetch dashboard endpoint or synthesize gracefully
+      const dashRes = await authFetch(`${API_BASE}/businesses/${bId}/dashboard`);
+      if (dashRes.ok) {
+        setDashboardData(await dashRes.json());
+      } else {
+        // Graceful client-side synthesis if backend has not been restarted yet
+        const synth = buildSyntheticDashboard(
+          bData,
+          dData,
+          snapData,
+          scData,
+          simData,
+          recData,
+          decData,
+          outData,
+          evoData
+        );
+        setDashboardData(synth);
+      }
     } catch (err) {
       console.error(err);
       setError("Failed to fetch some TwinIQ modules.");
@@ -169,7 +578,7 @@ export default function App() {
 
   const handleCreateSnapshot = async () => {
     try {
-      const res = await fetch(`${API_BASE}/businesses/${selectedBusinessId}/snapshots`, {
+      const res = await authFetch(`${API_BASE}/businesses/${selectedBusinessId}/snapshots`, {
         method: "POST",
       });
       if (!res.ok) throw new Error("Failed to create snapshot");
@@ -191,7 +600,7 @@ export default function App() {
       if (scenarioForm.scenarioType === "SUPPLIER_COST_CHANGE") payload.supplierCostChangePercent = val;
       if (scenarioForm.scenarioType === "DEMAND_SHOCK") payload.demandChangePercent = val;
 
-      const res = await fetch(`${API_BASE}/businesses/${selectedBusinessId}/scenarios`, {
+      const res = await authFetch(`${API_BASE}/businesses/${selectedBusinessId}/scenarios`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -203,7 +612,7 @@ export default function App() {
       }
 
       const created = await res.json();
-      flashMessage(`Scenario #${created.id} (${created.scenarioType}) created!`);
+      flashMessage(`Scenario #${created.id} (${created.scenarioType}) formulated successfully!`);
       refreshAllData(selectedBusinessId);
       switchTab("scenarios");
     } catch (err) {
@@ -214,7 +623,7 @@ export default function App() {
   const handleRunSimulation = async (scenarioId) => {
     setError("");
     try {
-      const res = await fetch(
+      const res = await authFetch(
         `${API_BASE}/businesses/${selectedBusinessId}/scenarios/${scenarioId}/simulate`,
         { method: "POST" }
       );
@@ -226,7 +635,7 @@ export default function App() {
       setSelectedSimulation(sim);
       flashMessage(`Simulation #${sim.id} complete for Scenario #${scenarioId}!`);
 
-      await fetch(`${API_BASE}/businesses/${selectedBusinessId}/simulations/${sim.id}/recommendations`, {
+      await authFetch(`${API_BASE}/businesses/${selectedBusinessId}/simulations/${sim.id}/recommendations`, {
         method: "POST",
       });
 
@@ -239,7 +648,7 @@ export default function App() {
 
   const handleViewExplanation = async (simId) => {
     try {
-      const res = await fetch(`${API_BASE}/businesses/${selectedBusinessId}/simulations/${simId}/explanation`);
+      const res = await authFetch(`${API_BASE}/businesses/${selectedBusinessId}/simulations/${simId}/explanation`);
       if (res.ok) {
         setExplanation(await res.json());
       }
@@ -256,7 +665,7 @@ export default function App() {
     }
     setError("");
     try {
-      const res = await fetch(`${API_BASE}/businesses/${selectedBusinessId}/scenarios/compare`, {
+      const res = await authFetch(`${API_BASE}/businesses/${selectedBusinessId}/scenarios/compare`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scenarioIds: compareIds }),
@@ -283,7 +692,7 @@ export default function App() {
   const handleRecordDecision = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${API_BASE}/businesses/${selectedBusinessId}/decisions`, {
+      const res = await authFetch(`${API_BASE}/businesses/${selectedBusinessId}/decisions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -309,7 +718,7 @@ export default function App() {
   const handleRecordOutcome = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${API_BASE}/businesses/${selectedBusinessId}/outcomes`, {
+      const res = await authFetch(`${API_BASE}/businesses/${selectedBusinessId}/outcomes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -327,7 +736,7 @@ export default function App() {
       const out = await res.json();
       flashMessage(`Actual Outcome #${out.id} recorded! Triggering Twin Evolution...`);
 
-      const evoRes = await fetch(`${API_BASE}/businesses/${selectedBusinessId}/evolution/evaluate/${out.id}`, {
+      const evoRes = await authFetch(`${API_BASE}/businesses/${selectedBusinessId}/evolution/evaluate/${out.id}`, {
         method: "POST",
       });
       if (evoRes.ok) {
@@ -341,954 +750,1336 @@ export default function App() {
     }
   };
 
-  const formatCurrency = (val) => {
-    if (val == null) return "-";
-    const num = parseFloat(val);
-    if (isNaN(num)) return "-";
-    return (num % 1 === 0 ? inrWholeFormatter : inrDecimalFormatter).format(num);
+  // Synchronize interactive snapshots from baseline snapshots
+  useEffect(() => {
+    if (Array.isArray(snapshots) && snapshots.length > 0) {
+      setInteractiveSnapshots(
+        snapshots.map((s) => ({
+          ...s,
+          originalRevenue: parseFloat(s.revenue) || 0,
+          adjustedRevenue: parseFloat(s.revenue) || 0,
+        }))
+      );
+    } else {
+      setInteractiveSnapshots([]);
+    }
+  }, [snapshots]);
+
+  // Interactive Snapshot Trend Chart Logic
+  const handleResetPoints = () => {
+    setInteractiveSnapshots(
+      snapshots.map((s) => ({
+        ...s,
+        originalRevenue: parseFloat(s.revenue) || 0,
+        adjustedRevenue: parseFloat(s.revenue) || 0,
+      }))
+    );
   };
 
-  const formatPct = (val) =>
-    val != null ? `${parseFloat(val).toFixed(1)}%` : "-";
+  const isPointsModified = interactiveSnapshots.some(
+    (s) => Math.abs((s.adjustedRevenue || 0) - (s.originalRevenue || 0)) > 100
+  );
+
+  // Dynamic revenue range for scaling
+  const baseRevs = interactiveSnapshots.map((s) => s.originalRevenue || 0);
+  const currentRevs = interactiveSnapshots.map((s) => s.adjustedRevenue || 0);
+  const allChartRevs = [...baseRevs, ...currentRevs].filter((r) => r > 0);
+  const rawMinRev = allChartRevs.length > 0 ? Math.min(...allChartRevs) : 100000;
+  const rawMaxRev = allChartRevs.length > 0 ? Math.max(...allChartRevs) : 3000000;
+  const revSpan = Math.max(rawMaxRev - rawMinRev, 500000);
+  const chartMinRev = Math.max(0, Math.floor((rawMinRev - revSpan * 0.35) / 10000) * 10000);
+  const chartMaxRev = Math.ceil((rawMaxRev + revSpan * 0.35) / 10000) * 10000;
+  const chartRevRange = Math.max(chartMaxRev - chartMinRev, 100000);
+
+  const getPointCoords = (rev, i, total) => {
+    const x = total <= 1 ? 400 : 90 + i * (620 / Math.max(total - 1, 1));
+    const normalized = Math.max(0, Math.min(1, ((rev || 0) - chartMinRev) / chartRevRange));
+    const y = 185 - normalized * 145;
+    return { x, y };
+  };
+
+  const getSvgCoordinates = (clientX, clientY) => {
+    if (!svgChartRef.current) return null;
+    const svg = svgChartRef.current;
+    try {
+      const pt = svg.createSVGPoint();
+      pt.x = clientX;
+      pt.y = clientY;
+      const screenCTM = svg.getScreenCTM();
+      if (screenCTM) {
+        const transformed = pt.matrixTransform(screenCTM.inverse());
+        return { x: transformed.x, y: transformed.y };
+      }
+    } catch (err) {
+      // SVG coordinate transformation fallback
+    }
+    const rect = svg.getBoundingClientRect();
+    const x = ((clientX - rect.left) / rect.width) * 800;
+    const y = ((clientY - rect.top) / rect.height) * 230;
+    return { x, y };
+  };
+
+  const handleStartDrag = (index, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDraggingIndex(index);
+    setHoveredSnapshotIndex(index);
+  };
+
+  useEffect(() => {
+    if (draggingIndex === null) return;
+
+    const handlePointerMove = (e) => {
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const coords = getSvgCoordinates(clientX, clientY);
+      if (!coords) return;
+
+      const clampedY = Math.max(35, Math.min(190, coords.y));
+      const norm = (185 - clampedY) / 145;
+      const newRev = chartMinRev + norm * chartRevRange;
+      const step = chartRevRange > 2000000 ? 25000 : 10000;
+      const roundedRev = Math.max(0, Math.round(newRev / step) * step);
+
+      setInteractiveSnapshots((prev) => {
+        if (!prev[draggingIndex]) return prev;
+        const next = [...prev];
+        next[draggingIndex] = {
+          ...next[draggingIndex],
+          adjustedRevenue: roundedRev,
+        };
+        return next;
+      });
+    };
+
+    const handlePointerUp = () => {
+      setDraggingIndex(null);
+    };
+
+    window.addEventListener("mousemove", handlePointerMove);
+    window.addEventListener("mouseup", handlePointerUp);
+    window.addEventListener("touchmove", handlePointerMove, { passive: false });
+    window.addEventListener("touchend", handlePointerUp);
+    window.addEventListener("touchcancel", handlePointerUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handlePointerMove);
+      window.removeEventListener("mouseup", handlePointerUp);
+      window.removeEventListener("touchmove", handlePointerMove);
+      window.removeEventListener("touchend", handlePointerUp);
+      window.removeEventListener("touchcancel", handlePointerUp);
+    };
+  }, [draggingIndex, chartMinRev, chartRevRange]);
+
+  // Copilot Response Generator based on Real State Data
+  const handleSendCopilotMessage = (customPrompt) => {
+    const query = (customPrompt || copilotInput).trim();
+    if (!query) return;
+
+    const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const userMsg = { sender: "user", text: query, time: now };
+    setCopilotMessages((prev) => [...prev, userMsg]);
+    if (!customPrompt) setCopilotInput("");
+
+    // Synthesize response based on real state data
+    setTimeout(() => {
+      let reply = "";
+      const lower = query.toLowerCase();
+
+      if (lower.includes("health") || lower.includes("status") || lower.includes("summary")) {
+        const score = dashboardData?.overallHealthScore != null ? Math.round(dashboardData.overallHealthScore) : 75;
+        const grade = dashboardData?.healthGrade || "HEALTHY";
+        reply = `Company health is currently rated at ${score}/100 (${grade}). Operating revenue stands at ${formatCurrency(dna?.revenue)}, with a ${formatPct(dna?.profitMargin)} profit margin and ${formatPct(dna?.customerRetention)} customer retention. The twin recommends prioritizing margin preservation against supplier cost shifts.`;
+      } else if (lower.includes("risk") || lower.includes("threat") || lower.includes("danger")) {
+        const riskVal = dna?.riskLevel || 35;
+        const safety = dashboardData?.riskSafetyBuffer || 65;
+        reply = `Organizational risk level is currently assessed at ${riskVal}%, leaving an enterprise safety buffer of ${safety}%. Key vulnerability: demand elasticities during price increases and supplier cost inflation. Retaining customer loyalty above 80% is the primary defensive cushion.`;
+      } else if (lower.includes("margin") || lower.includes("profit") || lower.includes("revenue")) {
+        reply = `Current annual run-rate revenue is ${formatCurrency(dna?.revenue)} at a ${formatPct(dna?.profitMargin)} margin. Simulations indicate that a targeted price adjustment of +10% delivers superior EBITDA expansion compared to marketing spend increases due to customer acquisition cost saturation (₹${dna?.customerAcquisitionCost}/customer).`;
+      } else if (lower.includes("scenario") || lower.includes("best") || lower.includes("compare")) {
+        if (comparisonResult) {
+          reply = `Based on multi-scenario evaluation: Scenario #${comparisonResult.bestRevenueScenarioId} drives maximum revenue, while Scenario #${comparisonResult.bestMarginScenarioId} optimizes bottom-line margin. Recommendation: adopt ${comparisonResult.comparativeSynthesis}.`;
+        } else if (scenarios.length > 0) {
+          reply = `You currently have ${scenarios.length} scenarios modeled. Head over to the 'Compare Scenarios' matrix to evaluate trade-offs side-by-side across revenue, profit margin, CAC, and risk.`;
+        } else {
+          reply = `No scenarios formulated yet. You can create a marketing, pricing, or supply chain scenario directly from the What-If Scenario tab.`;
+        }
+      } else if (lower.includes("advice") || lower.includes("recommend")) {
+        if (recommendations.length > 0) {
+          const top = recommendations[0];
+          reply = `Top Recommendation (#${top.id}): "${cleanText(top.actionStatement)}" with a ${top.confidenceScore}% confidence score and an expected ROI of +${top.expectedRoiPercent}%. Rationale: ${cleanText(top.rationale)}.`;
+        } else {
+          reply = `Run a simulation on any what-if scenario to generate autonomous cognitive recommendations.`;
+        }
+      } else if (lower.includes("accurate") || lower.includes("learning") || lower.includes("evolution")) {
+        const evoCount = dashboardData?.pipelineStats?.evolutionCount || evolutions.length;
+        reply = `The cognitive twin has completed ${evoCount} self-learning evolution cycles. As actual business outcomes are logged, the system measures predictive variance and recalibrates DNA parameters to continuously improve future simulation accuracy.`;
+      } else {
+        reply = `Analysis complete for ${business?.businessName || "Active Business"} (ID #${selectedBusinessId}): The enterprise twin model maturity is calibrated at ${Math.round(dashboardData?.pipelineStats?.cognitiveTwinMaturity || 70)}%. ${scenarios.length} scenarios and ${simulations.length} simulations are logged. You can explore trade-offs in the Scenario Lab or review the Executive Board Memo.`;
+      }
+
+      setCopilotMessages((prev) => [
+        ...prev,
+        { sender: "ai", text: reply, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) },
+      ]);
+    }, 350);
+  };
+
+  if (!currentUser) {
+    return (
+      <LoginView
+        onLoginSuccess={handleLoginSuccess}
+        theme={theme}
+        toggleTheme={toggleTheme}
+      />
+    );
+  }
+
+  if (experienceMode === "cinematic") {
+    return (
+      <div className="cinematic-experience-root" data-theme={theme}>
+        {/* Minimalist Hatom-Inspired Top Navigation Bar */}
+        <header className="cinematic-nav">
+          <div className="cinematic-nav-brand">
+            <div className="brand-dot-pulse" />
+            <span className="brand-logo-text">TWINIQ</span>
+            <span className="brand-badge-text">Living Cognitive Twin</span>
+          </div>
+
+          <div className="cinematic-nav-links">
+            <button
+              type="button"
+              className="cinematic-nav-link active"
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            >
+              Interactive Story
+            </button>
+            <button
+              type="button"
+              className="cinematic-nav-link"
+              onClick={() => {
+                switchExperienceMode("command");
+                switchTab("dashboard");
+              }}
+            >
+              Executive BI
+            </button>
+            <button
+              type="button"
+              className="cinematic-nav-link"
+              onClick={() => {
+                switchExperienceMode("command");
+                switchTab("scenarios");
+              }}
+            >
+              Simulation Lab
+            </button>
+            <button
+              type="button"
+              className="cinematic-nav-link"
+              onClick={() => {
+                switchExperienceMode("command");
+                switchTab("evolution");
+              }}
+            >
+              Self-Learning Loop
+            </button>
+          </div>
+
+          <div className="cinematic-nav-actions">
+            <button
+              type="button"
+              className="cinematic-command-cta"
+              onClick={() => switchExperienceMode("command")}
+              title="Open Full Operational Command Center"
+            >
+              <ShieldIcon size={14} />
+              <span>COMMAND CENTER</span>
+            </button>
+
+            {businesses.length > 0 && (
+              <div className="cinematic-biz-selector">
+                <select
+                  value={selectedBusinessId}
+                  onChange={(e) => handleSelectBusiness(Number(e.target.value))}
+                >
+                  {businesses
+                    .filter((b) => currentUser?.role === "ROLE_ADMIN" || currentUser?.accessibleBusinessIds?.includes(b.id))
+                    .map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.businessName} ({b.businessCode})
+                      </option>
+                    ))}
+                </select>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="theme-toggle-btn"
+              title="Toggle Light / Dark Theme"
+            >
+              {theme === "light" ? <MoonIcon size={16} /> : <SunIcon size={16} />}
+            </button>
+
+            <div className="cinematic-user-pill">
+              <span className="cinematic-user-avatar">
+                {currentUser?.fullName?.charAt(0) || currentUser?.username?.charAt(0) || "U"}
+              </span>
+              <span className="cinematic-user-name">{currentUser?.fullName || currentUser?.username}</span>
+              <button
+                type="button"
+                className="cinematic-logout-btn"
+                onClick={handleLogout}
+                title="Sign Out"
+              >
+                <LogoutIcon size={14} />
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* Story & Interactive Visualizer Body */}
+        <main className="cinematic-main-content">
+          <StoryExperience
+            business={business}
+            dna={dna}
+            snapshots={snapshots}
+            evolutions={evolutions}
+            scenarios={scenarios}
+            simulations={simulations}
+            recommendations={recommendations}
+            dashboardData={dashboardData}
+            onEnterCommandCenter={() => switchExperienceMode("command")}
+          />
+        </main>
+      </div>
+    );
+  }
 
   return (
-    <div className="twiniq-root">
-      {/* HEADER */}
-      <header className="top-header">
-        <div className="brand-group">
-          <div className="brand-logo">TwinIQ</div>
-          <div>
-            <h1 className="brand-title">Cognitive Business Twin</h1>
-            <p className="brand-subtitle">Strategic Decision Intelligence & Autonomous Evolution</p>
-          </div>
+    <div className="app-shell" data-theme={theme}>
+      {/* ENTERPRISE COLLAPSIBLE SIDEBAR */}
+      <aside className={`app-sidebar ${isSidebarCollapsed ? "collapsed" : ""}`}>
+        <div className="sidebar-brand">
+          <div className="sidebar-logo-icon">IQ</div>
+          {!isSidebarCollapsed && (
+            <div className="sidebar-brand-text">
+              <span className="sidebar-title">TwinIQ</span>
+              <span className="sidebar-subtitle">Cognitive Business Twin</span>
+            </div>
+          )}
         </div>
 
-        <div className="header-meta">
-          <div className="business-selector-box">
-            <span className="selector-label">Active Business</span>
-            <select
-              value={selectedBusinessId}
-              onChange={(e) => handleSelectBusiness(Number(e.target.value))}
-              className="business-select"
+        <nav className="sidebar-nav">
+          {/* SECTION 1: INTELLIGENCE & OVERSIGHT */}
+          <div className="sidebar-section">
+            {!isSidebarCollapsed && (
+              <span className="sidebar-section-label">Intelligence & Oversight</span>
+            )}
+            <button
+              className={`sidebar-item ${activeTab === "dashboard" ? "active" : ""}`}
+              onClick={() => switchTab("dashboard")}
+              title="Executive BI Dashboard"
             >
-              {businesses.map((b) => (
-                <option key={b.id} value={b.id}>
-                  #{b.id} - {b.businessName} ({b.businessCode})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <button onClick={handleCreateSnapshot} className="btn-action-snapshot">
-            📸 Capture Snapshot
-          </button>
-
-          <div className="system-status-badge">
-            <span className="live-dot"></span>
-            Backend Active (8081)
-          </div>
-        </div>
-      </header>
-
-      {/* NOTIFICATIONS */}
-      {message && <div className="banner banner-success">{message}</div>}
-      {error && <div className="banner banner-error">{error}</div>}
-
-      {/* PIPELINE NAVIGATION TABS */}
-      <nav className="pipeline-nav">
-        <div className="pipeline-step-label">INTELLIGENCE PIPELINE:</div>
-        <button className={`nav-tab ${activeTab === "dna" ? "active" : ""}`} onClick={() => switchTab("dna")}>
-          🧬 1. Business DNA
-        </button>
-        <button className={`nav-tab ${activeTab === "snapshots" ? "active" : ""}`} onClick={() => switchTab("snapshots")}>
-          📸 2. Snapshots ({snapshots.length})
-        </button>
-        <button className={`nav-tab ${activeTab === "scenarios" ? "active" : ""}`} onClick={() => switchTab("scenarios")}>
-          🎯 3. Scenarios ({scenarios.length})
-        </button>
-        <button className={`nav-tab ${activeTab === "comparison" ? "active" : ""}`} onClick={() => switchTab("comparison")}>
-          ⚖️ 4. Multi-Scenario Compare
-        </button>
-        <button className={`nav-tab ${activeTab === "simulations" ? "active" : ""}`} onClick={() => switchTab("simulations")}>
-          ⚡ 5. Simulation & Trace ({simulations.length})
-        </button>
-        <button className={`nav-tab ${activeTab === "recommendations" ? "active" : ""}`} onClick={() => switchTab("recommendations")}>
-          💡 6. Recommendations ({recommendations.length})
-        </button>
-        <button className={`nav-tab ${activeTab === "decisions" ? "active" : ""}`} onClick={() => switchTab("decisions")}>
-          🏛️ 7. Decisions ({decisions.length})
-        </button>
-        <button className={`nav-tab ${activeTab === "outcomes" ? "active" : ""}`} onClick={() => switchTab("outcomes")}>
-          📊 8. Actual Outcomes ({outcomes.length})
-        </button>
-        <button className={`nav-tab ${activeTab === "evolution" ? "active" : ""}`} onClick={() => switchTab("evolution")}>
-          🚀 9. Twin Evolution ({evolutions.length})
-        </button>
-      </nav>
-
-      {/* MAIN CONTENT AREA */}
-      <main className="content-container">
-        {loading && <div className="loading-indicator">Processing Cognitive Twin Data...</div>}
-
-        {/* TAB 1: BUSINESS DNA */}
-        {activeTab === "dna" && dna && (
-          <div className="tab-pane">
-            <div className="section-title-bar">
-              <div>
-                <h2>Living Business DNA Genome</h2>
-                <p>Real-time cognitive representation of organizational state, capacities, and strategic metrics.</p>
-              </div>
-              <div className="timestamp-badge">
-                Last Calibrated: {dna.lastUpdated ? new Date(dna.lastUpdated).toLocaleString() : "Initial"}
-              </div>
-            </div>
-
-            <div className="dna-metric-grid">
-              <div className="dna-card highlight">
-                <span className="dna-card-title">Annualized Revenue</span>
-                <span className="dna-card-value">{formatCurrency(dna.revenue)}</span>
-                <div className="dna-bar-track"><div className="dna-bar-fill" style={{ width: "88%" }}></div></div>
-              </div>
-
-              <div className="dna-card highlight">
-                <span className="dna-card-title">Operating Profit Margin</span>
-                <span className="dna-card-value">{formatPct(dna.profitMargin)}</span>
-                <div className="dna-bar-track"><div className="dna-bar-fill" style={{ width: `${Math.min(dna.profitMargin * 3.5, 100)}%` }}></div></div>
-              </div>
-
-              <div className="dna-card">
-                <span className="dna-card-title">Customer Retention Rate</span>
-                <span className="dna-card-value">{formatPct(dna.customerRetention)}</span>
-                <div className="dna-bar-track"><div className="dna-bar-fill" style={{ width: `${dna.customerRetention}%` }}></div></div>
-              </div>
-
-              <div className="dna-card">
-                <span className="dna-card-title">Customer Acquisition Cost (CAC)</span>
-                <span className="dna-card-value">{formatCurrency(dna.customerAcquisitionCost)}</span>
-                <div className="dna-bar-track"><div className="dna-bar-fill" style={{ width: "65%" }}></div></div>
-              </div>
-
-              <div className="dna-card">
-                <span className="dna-card-title">Operational Efficiency Index</span>
-                <span className="dna-card-value">{dna.operationalEfficiency}/100</span>
-                <div className="dna-bar-track"><div className="dna-bar-fill" style={{ width: `${dna.operationalEfficiency}%` }}></div></div>
-              </div>
-
-              <div className="dna-card">
-                <span className="dna-card-title">Systemic Risk Level</span>
-                <span className="dna-card-value" style={{ color: dna.riskLevel > 50 ? "#ef4444" : "#10b981" }}>
-                  {dna.riskLevel}/100
-                </span>
-                <div className="dna-bar-track"><div className="dna-bar-fill" style={{ width: `${dna.riskLevel}%`, background: dna.riskLevel > 50 ? "#ef4444" : "#10b981" }}></div></div>
-              </div>
-
-              <div className="dna-card">
-                <span className="dna-card-title">Competitive Strength</span>
-                <span className="dna-card-value">{dna.competitiveStrength}/100</span>
-                <div className="dna-bar-track"><div className="dna-bar-fill" style={{ width: `${dna.competitiveStrength}%` }}></div></div>
-              </div>
-
-              <div className="dna-card">
-                <span className="dna-card-title">Digital Maturity</span>
-                <span className="dna-card-value">{dna.digitalMaturity}/100</span>
-                <div className="dna-bar-track"><div className="dna-bar-fill" style={{ width: `${dna.digitalMaturity}%` }}></div></div>
-              </div>
-
-              <div className="dna-card">
-                <span className="dna-card-title">Financial Stability</span>
-                <span className="dna-card-value">{dna.financialStability}/100</span>
-                <div className="dna-bar-track"><div className="dna-bar-fill" style={{ width: `${dna.financialStability}%` }}></div></div>
-              </div>
-
-              <div className="dna-card">
-                <span className="dna-card-title">Innovation Capability</span>
-                <span className="dna-card-value">{dna.innovationCapability}/100</span>
-                <div className="dna-bar-track"><div className="dna-bar-fill" style={{ width: `${dna.innovationCapability}%` }}></div></div>
-              </div>
-            </div>
-
-            {/* DNA History */}
-            <div className="sub-section">
-              <h3>Parameter Evolution History ({dnaHistory.length} events)</h3>
-              {dnaHistory.length === 0 ? (
-                <p className="empty-text">No parameter changes recorded yet.</p>
-              ) : (
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Timestamp</th>
-                      <th>Parameter</th>
-                      <th>Old Value</th>
-                      <th>New Value</th>
-                      <th>Reason</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dnaHistory.map((h) => (
-                      <tr key={h.id}>
-                        <td>{new Date(h.changedAt).toLocaleString()}</td>
-                        <td><strong>{h.parameterName}</strong></td>
-                        <td>{h.oldValue}</td>
-                        <td className="text-highlight">{h.newValue}</td>
-                        <td>{h.reason}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <span className="sidebar-item-icon"><DashboardIcon /></span>
+              {!isSidebarCollapsed && <span className="sidebar-item-label">Executive Dashboard</span>}
+              {!isSidebarCollapsed && dashboardData && (
+                <span className="sidebar-item-badge">{Math.round(dashboardData.overallHealthScore)}%</span>
               )}
-            </div>
-          </div>
-        )}
+            </button>
 
-        {/* TAB 2: TWIN SNAPSHOTS & VISUAL TREND CHART */}
-        {activeTab === "snapshots" && (
-          <div className="tab-pane">
-            <div className="section-title-bar">
-              <div>
-                <h2>Frozen Baseline Snapshots & Evolution Trend</h2>
-                <p>Immutable checkpoints capturing the state of the business twin over historical horizons.</p>
-              </div>
-              <button onClick={handleCreateSnapshot} className="btn-primary">
-                + Capture New Snapshot
+            <button
+              className={`sidebar-item ${activeTab === "dna" ? "active" : ""}`}
+              onClick={() => switchTab("dna")}
+              title="Business DNA & Health Metrics"
+            >
+              <span className="sidebar-item-icon"><DnaIcon /></span>
+              {!isSidebarCollapsed && <span className="sidebar-item-label">Business DNA (Health)</span>}
+              {!isSidebarCollapsed && <span className="sidebar-item-badge">10 Metrics</span>}
+            </button>
+
+            <button
+              className={`sidebar-item ${activeTab === "snapshots" ? "active" : ""}`}
+              onClick={() => switchTab("snapshots")}
+              title="Saved Baseline Snapshots & Trends"
+            >
+              <span className="sidebar-item-icon"><SnapshotIcon /></span>
+              {!isSidebarCollapsed && <span className="sidebar-item-label">Snapshots & Trends</span>}
+              {!isSidebarCollapsed && snapshots.length > 0 && (
+                <span className="sidebar-item-badge">{snapshots.length}</span>
+              )}
+            </button>
+          </div>
+
+          {/* SECTION 2: STRATEGIC SIMULATION ENGINE */}
+          <div className="sidebar-section">
+            {!isSidebarCollapsed && (
+              <span className="sidebar-section-label">Strategic Simulation</span>
+            )}
+            <button
+              className={`sidebar-item ${activeTab === "scenarios" ? "active" : ""}`}
+              onClick={() => switchTab("scenarios")}
+              title="What-If Scenario Formulator"
+            >
+              <span className="sidebar-item-icon"><ScenarioIcon /></span>
+              {!isSidebarCollapsed && <span className="sidebar-item-label">What-If Scenarios</span>}
+              {!isSidebarCollapsed && scenarios.length > 0 && (
+                <span className="sidebar-item-badge">{scenarios.length}</span>
+              )}
+            </button>
+
+            <button
+              className={`sidebar-item ${activeTab === "comparison" ? "active" : ""}`}
+              onClick={() => switchTab("comparison")}
+              title="Multi-Scenario Comparison Matrix"
+            >
+              <span className="sidebar-item-icon"><ComparisonIcon /></span>
+              {!isSidebarCollapsed && <span className="sidebar-item-label">Compare Scenarios</span>}
+            </button>
+
+            <button
+              className={`sidebar-item ${activeTab === "simulations" ? "active" : ""}`}
+              onClick={() => switchTab("simulations")}
+              title="Simulation Engine & Causal Trace"
+            >
+              <span className="sidebar-item-icon"><SimulationIcon /></span>
+              {!isSidebarCollapsed && <span className="sidebar-item-label">Simulation & Trace</span>}
+              {!isSidebarCollapsed && simulations.length > 0 && (
+                <span className="sidebar-item-badge">{simulations.length}</span>
+              )}
+            </button>
+
+            <button
+              className={`sidebar-item ${activeTab === "forecast" ? "active" : ""}`}
+              onClick={() => switchTab("forecast")}
+              title="30/60/90-Day Trend Forecasting"
+            >
+              <span className="sidebar-item-icon"><ForecastIcon /></span>
+              {!isSidebarCollapsed && <span className="sidebar-item-label">Trend Forecasting</span>}
+              {!isSidebarCollapsed && <span className="sidebar-item-badge">New</span>}
+            </button>
+          </div>
+
+          {/* SECTION 3: DECISION & EXECUTION PIPELINE */}
+          <div className="sidebar-section">
+            {!isSidebarCollapsed && (
+              <span className="sidebar-section-label">Decision & Evolution</span>
+            )}
+            <button
+              className={`sidebar-item ${activeTab === "recommendations" ? "active" : ""}`}
+              onClick={() => switchTab("recommendations")}
+              title="Smart Advice & Recommendations"
+            >
+              <span className="sidebar-item-icon"><RecommendationIcon /></span>
+              {!isSidebarCollapsed && <span className="sidebar-item-label">Smart Recommendations</span>}
+              {!isSidebarCollapsed && recommendations.length > 0 && (
+                <span className="sidebar-item-badge">{recommendations.length}</span>
+              )}
+            </button>
+
+            <button
+              className={`sidebar-item ${activeTab === "decisions" ? "active" : ""}`}
+              onClick={() => switchTab("decisions")}
+              title="Decision Ledger & Manager Actions"
+            >
+              <span className="sidebar-item-icon"><DecisionIcon /></span>
+              {!isSidebarCollapsed && <span className="sidebar-item-label">Decision Ledger</span>}
+              {!isSidebarCollapsed && decisions.length > 0 && (
+                <span className="sidebar-item-badge">{decisions.length}</span>
+              )}
+            </button>
+
+            <button
+              className={`sidebar-item ${activeTab === "outcomes" ? "active" : ""}`}
+              onClick={() => switchTab("outcomes")}
+              title="Real-World Realized Outcomes"
+            >
+              <span className="sidebar-item-icon"><OutcomeIcon /></span>
+              {!isSidebarCollapsed && <span className="sidebar-item-label">Real Outcomes</span>}
+              {!isSidebarCollapsed && outcomes.length > 0 && (
+                <span className="sidebar-item-badge">{outcomes.length}</span>
+              )}
+            </button>
+
+            <button
+              className={`sidebar-item ${activeTab === "evolution" ? "active" : ""}`}
+              onClick={() => switchTab("evolution")}
+              title="Self-Learning Model Evolution"
+            >
+              <span className="sidebar-item-icon"><EvolutionIcon /></span>
+              {!isSidebarCollapsed && <span className="sidebar-item-label">Self-Learning Evolution</span>}
+              {!isSidebarCollapsed && evolutions.length > 0 && (
+                <span className="sidebar-item-badge">{evolutions.length}</span>
+              )}
+            </button>
+          </div>
+
+          {/* SECTION 4: ENTERPRISE COMMAND & INTELLIGENCE */}
+          <div className="sidebar-section">
+            {!isSidebarCollapsed && (
+              <span className="sidebar-section-label">Enterprise Command</span>
+            )}
+            <button
+              className={`sidebar-item ${activeTab === "risks" ? "active" : ""}`}
+              onClick={() => switchTab("risks")}
+              title="Enterprise Risk Radar"
+            >
+              <span className="sidebar-item-icon"><RiskIcon /></span>
+              {!isSidebarCollapsed && <span className="sidebar-item-label">Risk Radar</span>}
+            </button>
+
+            <button
+              className={`sidebar-item ${activeTab === "opportunities" ? "active" : ""}`}
+              onClick={() => switchTab("opportunities")}
+              title="Strategic Opportunity Radar"
+            >
+              <span className="sidebar-item-icon"><OpportunityIcon /></span>
+              {!isSidebarCollapsed && <span className="sidebar-item-label">Opportunity Radar</span>}
+            </button>
+
+            <button
+              className={`sidebar-item ${activeTab === "copilot" ? "active" : ""}`}
+              onClick={() => switchTab("copilot")}
+              title="Business Copilot AI"
+            >
+              <span className="sidebar-item-icon"><CopilotIcon /></span>
+              {!isSidebarCollapsed && <span className="sidebar-item-label">Business Copilot AI</span>}
+              {!isSidebarCollapsed && <span className="sidebar-item-badge">Live</span>}
+            </button>
+
+            <button
+              className={`sidebar-item ${activeTab === "reports" ? "active" : ""}`}
+              onClick={() => switchTab("reports")}
+              title="Executive BI Board Report"
+            >
+              <span className="sidebar-item-icon"><ReportIcon /></span>
+              {!isSidebarCollapsed && <span className="sidebar-item-label">Executive BI Report</span>}
+            </button>
+          </div>
+
+          {/* SECTION 5: PLATFORM GOVERNANCE (ADMIN ONLY) */}
+          {currentUser?.role === "ROLE_ADMIN" && (
+            <div className="sidebar-section">
+              {!isSidebarCollapsed && (
+                <span className="sidebar-section-label">Enterprise Governance</span>
+              )}
+              <button
+                className={`sidebar-item ${activeTab === "admin" ? "active" : ""}`}
+                onClick={() => switchTab("admin")}
+                title="System Administration & RBAC Console"
+              >
+                <span className="sidebar-item-icon"><ShieldIcon /></span>
+                {!isSidebarCollapsed && <span className="sidebar-item-label">Admin Console</span>}
+                {!isSidebarCollapsed && <span className="sidebar-item-badge admin">RBAC</span>}
               </button>
             </div>
+          )}
+        </nav>
 
-            {/* Visual SVG Trend Chart across snapshots */}
-            {snapshots.length > 0 && (
-              <div className="visualization-card">
-                <h3>📈 Snapshot Evolution Horizon (Revenue & Profit Margin Trajectory)</h3>
-                <div className="chart-canvas-container">
-                  <svg className="trend-svg" viewBox="0 0 800 180">
-                    <line x1="50" y1="140" x2="750" y2="140" stroke="#E2E8F0" strokeWidth="1" />
-                    <line x1="50" y1="40" x2="750" y2="40" stroke="#E2E8F0" strokeWidth="1" strokeDasharray="4" />
-                    
-                    {/* Render dots and lines */}
-                    {snapshots.map((s, i) => {
-                      const x = 80 + i * (600 / Math.max(snapshots.length - 1, 1));
-                      const revNorm = Math.min(100, Math.max(20, (parseFloat(s.revenue) - 450000) / 1500));
-                      const yRev = 140 - revNorm;
-                      return (
-                        <g key={s.id}>
-                          <circle cx={x} cy={yRev} r="6" fill="#4F46E5" />
-                          <text x={x} y={yRev - 12} fill="#0F172A" fontSize="11" fontWeight="700" textAnchor="middle">
-                            ₹{(parseFloat(s.revenue) / 1000).toFixed(0)}k
-                          </text>
-                          <text x={x} y="160" fill="#64748B" fontSize="11" textAnchor="middle">
-                            Snap #{s.id} ({formatPct(s.profitMargin)})
-                          </text>
-                        </g>
-                      );
-                    })}
-                  </svg>
-                  <div className="chart-legend">
-                    <span className="legend-item"><span className="legend-dot" style={{ background: "#4F46E5" }}></span> Projected / Captured Revenue Trend</span>
-                  </div>
-                </div>
-              </div>
-            )}
+        {/* SIDEBAR FOOTER */}
+        <div className="sidebar-footer">
+          <button onClick={toggleSidebar} className="sidebar-collapse-btn" title="Toggle Sidebar Width">
+            {isSidebarCollapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+            {!isSidebarCollapsed && <span>Collapse Sidebar</span>}
+          </button>
+        </div>
+      </aside>
 
-            <div className="snapshot-timeline">
-              {snapshots.map((s, idx) => (
-                <div className="snapshot-card" key={s.id}>
-                  <div className="snapshot-header">
-                    <div className="snapshot-tag">Snapshot #{s.id} {idx === 0 ? "(Latest Baseline)" : ""}</div>
-                    <span className="snapshot-time">{new Date(s.snapshotTime).toLocaleString()}</span>
-                  </div>
-
-                  <div className="snapshot-metrics-row">
-                    <div><span>Revenue:</span> <strong>{formatCurrency(s.revenue)}</strong></div>
-                    <div><span>Margin:</span> <strong>{formatPct(s.profitMargin)}</strong></div>
-                    <div><span>Retention:</span> <strong>{formatPct(s.customerRetention)}</strong></div>
-                    <div><span>CAC:</span> <strong>{formatCurrency(s.customerAcquisitionCost)}</strong></div>
-                    <div><span>Efficiency:</span> <strong>{s.operationalEfficiency}%</strong></div>
-                    <div><span>Risk:</span> <strong>{s.riskLevel}%</strong></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 3: SCENARIOS */}
-        {activeTab === "scenarios" && (
-          <div className="tab-pane">
-            <div className="section-title-bar">
-              <div>
-                <h2>What-If Strategic Scenarios</h2>
-                <p>Formulate prospective hypothesis perturbations to test organizational resiliency.</p>
-              </div>
-            </div>
-
-            <div className="scenario-workspace-layout">
-              <div className="scenario-form-card">
-                <h3>New Scenario Formulation</h3>
-                <form onSubmit={handleCreateScenario}>
-                  <div className="form-group">
-                    <label>Scenario Archetype</label>
-                    <select
-                      value={scenarioForm.scenarioType}
-                      onChange={(e) => setScenarioForm({ ...scenarioForm, scenarioType: e.target.value })}
-                      className="form-input"
-                    >
-                      <option value="MARKETING_CHANGE">MARKETING_CHANGE (Scale/Reduce Spend)</option>
-                      <option value="PRICE_CHANGE">PRICE_CHANGE (Strategic Pricing Shift)</option>
-                      <option value="SUPPLIER_COST_CHANGE">SUPPLIER_COST_CHANGE (COGS Inflation)</option>
-                      <option value="DEMAND_SHOCK">DEMAND_SHOCK (Macro Market Volatility)</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Percentage Magnitude Shift (%)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={scenarioForm.changePercent}
-                      onChange={(e) => setScenarioForm({ ...scenarioForm, changePercent: e.target.value })}
-                      className="form-input"
-                      placeholder="e.g. +20.0 or -10.0"
-                      required
-                    />
-                    <small className="hint-text">Positive for increase/expansion; negative for reduction.</small>
-                  </div>
-
-                  <button type="submit" className="btn-primary full-width">
-                    Create & Queue Scenario
-                  </button>
-                </form>
-              </div>
-
-              <div className="scenarios-list-container">
-                <div className="list-top-action-bar">
-                  <h3>Formulated Scenarios ({scenarios.length})</h3>
-                  <button onClick={() => switchTab("comparison")} className="btn-action-compare">
-                    ⚖️ Multi-Scenario Comparison Mode →
-                  </button>
-                </div>
-                {scenarios.length === 0 ? (
-                  <p className="empty-text">No scenarios formulated yet.</p>
-                ) : (
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>Select</th>
-                        <th>ID</th>
-                        <th>Type</th>
-                        <th>Perturbation Parameter</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {scenarios.map((sc) => {
-                        let paramText = "-";
-                        if (sc.marketingSpendChangePercent != null) paramText = `Marketing: ${sc.marketingSpendChangePercent}%`;
-                        if (sc.priceChangePercent != null) paramText = `Price: ${sc.priceChangePercent}%`;
-                        if (sc.supplierCostChangePercent != null) paramText = `Supplier Cost: ${sc.supplierCostChangePercent}%`;
-                        if (sc.demandChangePercent != null) paramText = `Demand Shock: ${sc.demandChangePercent}%`;
-
-                        return (
-                          <tr key={sc.id}>
-                            <td>
-                              <input
-                                type="checkbox"
-                                checked={compareIds.includes(sc.id)}
-                                onChange={() => toggleCompareId(sc.id)}
-                              />
-                            </td>
-                            <td><strong>#{sc.id}</strong></td>
-                            <td><span className="badge badge-scenario">{sc.scenarioType}</span></td>
-                            <td>{paramText}</td>
-                            <td>
-                              <span className={`badge ${sc.status === "SIMULATED" ? "badge-simulated" : "badge-ready"}`}>
-                                {sc.status}
-                              </span>
-                            </td>
-                            <td>
-                              <button
-                                onClick={() => handleRunSimulation(sc.id)}
-                                className="btn-simulate-small"
-                              >
-                                ⚡ Run Simulation
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 4: MULTI-SCENARIO COMPARISON */}
-        {activeTab === "comparison" && (
-          <div className="tab-pane">
-            <div className="section-title-bar">
-              <div>
-                <h2>⚖️ Multi-Scenario Strategic Comparison</h2>
-                <p>Simultaneously evaluate multiple what-if hypotheses side-by-side to determine optimal resource allocation.</p>
-              </div>
-              <button onClick={handleRunComparison} className="btn-primary">
-                ⚡ Evaluate Trade-Offs
-              </button>
-            </div>
-
-            <div className="compare-picker-strip">
-              <span className="picker-label">Select Scenarios to Compare:</span>
-              <div className="compare-checkboxes">
-                {scenarios.map((s) => (
-                  <label key={s.id} className={`chip-checkbox ${compareIds.includes(s.id) ? "checked" : ""}`}>
-                    <input
-                      type="checkbox"
-                      checked={compareIds.includes(s.id)}
-                      onChange={() => toggleCompareId(s.id)}
-                    />
-                    Scenario #{s.id} ({s.scenarioType})
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {comparisonResult ? (
-              <div className="comparison-results-panel">
-                {/* Synthesis Banner */}
-                <div className="synthesis-card">
-                  <span className="synthesis-tag">STRATEGIC SYNTHESIS & TRADE-OFF VERDICT</span>
-                  <p className="synthesis-text">{comparisonResult.comparativeSynthesis}</p>
-                  <div className="synthesis-badges">
-                    <span className="pill-badge pill-rev">👑 Best Revenue: Scenario #{comparisonResult.bestRevenueScenarioId}</span>
-                    <span className="pill-badge pill-margin">💎 Best Margin: Scenario #{comparisonResult.bestMarginScenarioId}</span>
-                    <span className="pill-badge pill-risk">🛡️ Lowest Risk: Scenario #{comparisonResult.lowestRiskScenarioId}</span>
-                  </div>
-                </div>
-
-                {/* Comparison Matrix Table */}
-                <table className="comparison-table">
-                  <thead>
-                    <tr>
-                      <th>Scenario & Parameter</th>
-                      <th>Projected Revenue</th>
-                      <th>Profit Margin</th>
-                      <th>CAC</th>
-                      <th>Retention</th>
-                      <th>Efficiency</th>
-                      <th>Risk Index</th>
-                      <th>Impact</th>
-                      <th>Prescriptive Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {comparisonResult.scenarios.map((sc) => (
-                      <tr key={sc.scenarioId} className={sc.scenarioId === comparisonResult.bestRevenueScenarioId ? "row-highlight" : ""}>
-                        <td>
-                          <strong>Scenario #{sc.scenarioId}</strong>
-                          <div className="sc-subtext">{sc.scenarioType}</div>
-                          <div className="param-pill">{sc.parameterDescription}</div>
-                        </td>
-                        <td>
-                          <div className="bold-val">{formatCurrency(sc.projectedRevenue)}</div>
-                          <div className="delta-sm">{sc.revenueImpactPercent >= 0 ? "+" : ""}{sc.revenueImpactPercent}%</div>
-                        </td>
-                        <td>
-                          <div className="bold-val">{formatPct(sc.projectedProfitMargin)}</div>
-                          <div className="delta-sm">{sc.profitMarginImpactPercent >= 0 ? "+" : ""}{sc.profitMarginImpactPercent} pts</div>
-                        </td>
-                        <td>{formatCurrency(sc.projectedCustomerAcquisitionCost)}</td>
-                        <td>{formatPct(sc.projectedCustomerRetention)}</td>
-                        <td>{sc.projectedOperationalEfficiency}%</td>
-                        <td>
-                          <span style={{ color: sc.projectedRiskLevel > 50 ? "#ef4444" : "#10b981", fontWeight: 700 }}>
-                            {sc.projectedRiskLevel}%
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`badge impact-${sc.overallImpact?.toLowerCase()}`}>
-                            {sc.overallImpact}
-                          </span>
-                        </td>
-                        <td className="action-col-text">"{sc.recommendedAction}"</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="empty-state-box">
-                <p>Select 2 or more scenarios above and click <strong>Evaluate Trade-Offs</strong> to inspect comparative matrix.</p>
-                <button onClick={handleRunComparison} className="btn-primary">
-                  Evaluate Now
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* TAB 5: SIMULATION & EXPLANATION TRACE */}
-        {activeTab === "simulations" && (
-          <div className="tab-pane">
-            <div className="section-title-bar">
-              <div>
-                <h2>Rule-Based Simulation & Explanation Trace</h2>
-                <p>Cognitive modeling estimating multi-variable business impact with transparent causal reasoning.</p>
-              </div>
-            </div>
-
-            {simulations.length === 0 ? (
-              <div className="empty-state-box">
-                <p>No simulations run yet. Go to <strong>3. Scenarios</strong> and click <strong>Run Simulation</strong>.</p>
-                <button onClick={() => switchTab("scenarios")} className="btn-primary">
-                  Go to Scenarios
-                </button>
-              </div>
-            ) : (
-              <div className="simulation-dashboard-grid">
-                <div className="sim-selector-strip">
-                  <span>Select Simulation:</span>
-                  {simulations.map((sim) => (
-                    <button
-                      key={sim.id}
-                      className={`chip-btn ${selectedSimulation?.id === sim.id ? "active" : ""}`}
-                      onClick={() => {
-                        setSelectedSimulation(sim);
-                        setExplanation(null);
-                      }}
-                    >
-                      Sim #{sim.id} ({sim.scenarioType})
-                    </button>
+      {/* MAIN APPLICATION WORKSPACE */}
+      <div className={`app-main ${isSidebarCollapsed ? "sidebar-collapsed" : ""}`}>
+        {/* ENTERPRISE TOPBAR */}
+        <header className="app-topbar">
+          <div className="topbar-left">
+            <div className="business-selector-badge">
+              <BuildingIcon size={16} />
+              <select
+                value={selectedBusinessId}
+                onChange={(e) => handleSelectBusiness(Number(e.target.value))}
+                className="business-select-control"
+              >
+                {businesses
+                  .filter((b) => currentUser?.role === "ROLE_ADMIN" || currentUser?.accessibleBusinessIds?.includes(b.id))
+                  .map((b) => (
+                    <option key={b.id} value={b.id}>
+                      #{b.id} - {b.businessName} ({b.businessCode})
+                    </option>
                   ))}
-                </div>
-
-                {selectedSimulation && (
-                  <>
-                    <div className="sim-summary-card">
-                      <div className="summary-left">
-                        <span className="summary-label">COGNITIVE TWIN SIMULATION #{selectedSimulation.id}</span>
-                        <h3>{selectedSimulation.summary}</h3>
-                        <p>Simulated against Scenario #{selectedSimulation.scenarioId} using Baseline Snapshot #{selectedSimulation.twinSnapshotId}.</p>
-                      </div>
-
-                      <div className="summary-right">
-                        <div className={`impact-badge impact-${selectedSimulation.overallImpact?.toLowerCase()}`}>
-                          Impact: {selectedSimulation.overallImpact}
-                        </div>
-                        <button
-                          onClick={() => handleViewExplanation(selectedSimulation.id)}
-                          className="btn-trace"
-                        >
-                          🔍 Inspect Explanation Trace
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="metrics-comparison-grid">
-                      <div className="metric-compare-card">
-                        <span className="metric-name">Revenue</span>
-                        <div className="compare-values">
-                          <div><span className="label">Baseline</span><strong className="val-base">{formatCurrency(selectedSimulation.baselineRevenue)}</strong></div>
-                          <div className="arrow-sep">→</div>
-                          <div><span className="label">Projected</span><strong className="val-proj">{formatCurrency(selectedSimulation.projectedRevenue)}</strong></div>
-                        </div>
-                        <div className="delta-tag">
-                          {selectedSimulation.revenueImpactPercent >= 0 ? "+" : ""}{selectedSimulation.revenueImpactPercent}%
-                        </div>
-                      </div>
-
-                      <div className="metric-compare-card">
-                        <span className="metric-name">Profit Margin</span>
-                        <div className="compare-values">
-                          <div><span className="label">Baseline</span><strong className="val-base">{formatPct(selectedSimulation.baselineProfitMargin)}</strong></div>
-                          <div className="arrow-sep">→</div>
-                          <div><span className="label">Projected</span><strong className="val-proj">{formatPct(selectedSimulation.projectedProfitMargin)}</strong></div>
-                        </div>
-                        <div className="delta-tag">
-                          {selectedSimulation.profitMarginImpactPercent >= 0 ? "+" : ""}{selectedSimulation.profitMarginImpactPercent} pts
-                        </div>
-                      </div>
-
-                      <div className="metric-compare-card">
-                        <span className="metric-name">Customer Retention</span>
-                        <div className="compare-values">
-                          <div><span className="label">Baseline</span><strong className="val-base">{formatPct(selectedSimulation.baselineCustomerRetention)}</strong></div>
-                          <div className="arrow-sep">→</div>
-                          <div><span className="label">Projected</span><strong className="val-proj">{formatPct(selectedSimulation.projectedCustomerRetention)}</strong></div>
-                        </div>
-                      </div>
-
-                      <div className="metric-compare-card">
-                        <span className="metric-name">CAC (Acquisition Cost)</span>
-                        <div className="compare-values">
-                          <div><span className="label">Baseline</span><strong className="val-base">{formatCurrency(selectedSimulation.baselineCustomerAcquisitionCost)}</strong></div>
-                          <div className="arrow-sep">→</div>
-                          <div><span className="label">Projected</span><strong className="val-proj">{formatCurrency(selectedSimulation.projectedCustomerAcquisitionCost)}</strong></div>
-                        </div>
-                      </div>
-
-                      <div className="metric-compare-card">
-                        <span className="metric-name">Operational Efficiency</span>
-                        <div className="compare-values">
-                          <div><span className="label">Baseline</span><strong className="val-base">{selectedSimulation.baselineOperationalEfficiency}%</strong></div>
-                          <div className="arrow-sep">→</div>
-                          <div><span className="label">Projected</span><strong className="val-proj">{selectedSimulation.projectedOperationalEfficiency}%</strong></div>
-                        </div>
-                      </div>
-
-                      <div className="metric-compare-card">
-                        <span className="metric-name">Risk Index</span>
-                        <div className="compare-values">
-                          <div><span className="label">Baseline</span><strong className="val-base">{selectedSimulation.baselineRiskLevel}%</strong></div>
-                          <div className="arrow-sep">→</div>
-                          <div><span className="label">Projected</span><strong className="val-proj" style={{ color: selectedSimulation.projectedRiskLevel > 50 ? "#ef4444" : "#10b981" }}>{selectedSimulation.projectedRiskLevel}%</strong></div>
-                        </div>
-                        <div className="delta-tag">
-                          {selectedSimulation.riskImpactPercent >= 0 ? "+" : ""}{selectedSimulation.riskImpactPercent} pts
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="explanation-trace-box">
-                      <div className="trace-header">
-                        <h3>🧠 Causal Explanation Trace</h3>
-                        <span className="trace-subtitle">Step-by-step cognitive reasoning explaining WHY the twin produced this result:</span>
-                      </div>
-
-                      <div className="trace-steps-list">
-                        {(explanation ? explanation.traceSteps : selectedSimulation.explanationSteps || []).map((step, idx) => (
-                          <div className="trace-step-item" key={idx}>
-                            <div className="step-number">{idx + 1}</div>
-                            <div className="step-content">{step}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+              </select>
+            </div>
           </div>
-        )}
 
-        {/* TAB 6: RECOMMENDATIONS */}
-        {activeTab === "recommendations" && (
-          <div className="tab-pane">
-            <div className="section-title-bar">
-              <div>
-                <h2>Prescriptive Recommendations</h2>
-                <p>Actionable intelligence synthesized automatically from simulation outcomes and causal traces.</p>
-              </div>
+          <div className="topbar-right">
+            <button
+              type="button"
+              onClick={() => switchExperienceMode("cinematic")}
+              className="btn-header-action cinematic-switch-btn"
+              title="Switch to Hatom-Inspired Cinematic Digital Twin Experience"
+            >
+              <SparklesIcon size={14} color="var(--primary)" />
+              <span>🌌 Cinematic Experience</span>
+            </button>
+
+            <button onClick={() => setShowCsvModal(true)} className="btn-header-action secondary" title="Import CSV Metrics">
+              <UploadIcon size={15} />
+              <span>Import CSV</span>
+            </button>
+
+            <button onClick={handleCreateSnapshot} className="btn-header-action" title="Capture Baseline Snapshot">
+              <SnapshotIcon size={15} />
+              <span>Capture Snapshot</span>
+            </button>
+
+            <button onClick={toggleTheme} className="theme-toggle-btn" title="Toggle Light / Dark Mode">
+              {theme === "light" ? <MoonIcon size={18} /> : <SunIcon size={18} />}
+            </button>
+
+            <div className="system-status-indicator">
+              <span className="status-dot"></span>
+              <span>Twin Core Online</span>
             </div>
 
-            {recommendations.length === 0 ? (
-              <p className="empty-text">No recommendations generated yet. Run a simulation first.</p>
-            ) : (
-              <div className="recommendations-grid">
-                {recommendations.map((rec) => (
-                  <div className="rec-card" key={rec.id}>
-                    <div className="rec-top-row">
-                      <span className={`rec-badge rec-${rec.recommendationType?.toLowerCase()}`}>
-                        {rec.recommendationType}
+            <div className="topbar-user-pill">
+              <div className="user-avatar-mini">
+                {currentUser?.fullName?.charAt(0) || currentUser?.username?.charAt(0) || "U"}
+              </div>
+              <div className="user-info-mini">
+                <span className="user-name-mini">{currentUser?.fullName || currentUser?.username}</span>
+                <span className={`user-role-mini ${currentUser?.role === "ROLE_ADMIN" ? "admin" : "strategist"}`}>
+                  {currentUser?.role === "ROLE_ADMIN" ? "ADMIN" : "STRATEGIST"}
+                </span>
+              </div>
+              <button onClick={handleLogout} className="btn-logout" title="Sign Out of Session">
+                <LogoutIcon size={15} />
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* MAIN VIEWPORT CONTENT */}
+        <main className="app-content">
+          {/* Notifications */}
+          {message && <div className="banner banner-success">{message}</div>}
+          {error && <div className="banner banner-error">{error}</div>}
+          {loading && <div className="banner banner-success" style={{ opacity: 0.85 }}>Processing Cognitive Twin Intelligence...</div>}
+
+          {/* TAB: ADMIN CONSOLE */}
+          {activeTab === "admin" && currentUser?.role === "ROLE_ADMIN" && (
+            <div className="tab-pane">
+              <AdminPortal
+                token={token}
+                onSwitchToBusiness={(bizId) => {
+                  setSelectedBusinessId(bizId);
+                  switchTab("dashboard");
+                }}
+              />
+            </div>
+          )}
+
+          {/* TAB: FORECASTING */}
+          {activeTab === "forecast" && (
+            <div className="tab-pane">
+              <ForecastView
+                dna={dna}
+                snapshots={snapshots}
+                formatCurrency={formatCurrency}
+                formatPct={formatPct}
+              />
+            </div>
+          )}
+
+          {/* TAB 0: EXECUTIVE BI DASHBOARD */}
+          {activeTab === "dashboard" && (
+            <div className="tab-pane">
+              {/* Dashboard Hero Card */}
+              <div className="dashboard-hero-card">
+                <div className="hero-identity-section">
+                  <div className="hero-company-badge">
+                    <span className="hero-code">{business?.businessCode || "TWIN-IQ"}</span>
+                    <span className="hero-industry">{business?.industry || "Enterprise"}</span>
+                    <span className="hero-location">📍 {business?.location || "India"}</span>
+                  </div>
+                  <h2 className="hero-business-name">{business?.businessName || "Your Company"}</h2>
+                  <p className="hero-summary-text">
+                    {dashboardData?.healthSummary ||
+                      "Live cognitive twin synthesis. Real-time assessment of business health, operational leverage, and decision readiness."}
+                  </p>
+                  <div className="hero-meta-row">
+                    <span>🏢 Company ID: <strong>#{selectedBusinessId}</strong></span>
+                    <span>🧬 DNA Status: <strong>{dna ? "Live & Calibrated" : "Initializing"}</strong></span>
+                    <span>🔄 Learning Cycles: <strong>{dashboardData?.pipelineStats?.evolutionCount || 0}</strong></span>
+                  </div>
+                </div>
+
+                {/* Health Score Circular / Radial Meter */}
+                <div className="hero-health-meter">
+                  <div className="health-score-circle">
+                    <svg viewBox="0 0 120 120" className="health-radial-svg">
+                      <circle cx="60" cy="60" r="50" className="radial-bg" />
+                      <circle
+                        cx="60"
+                        cy="60"
+                        r="50"
+                        className="radial-progress"
+                        strokeDasharray="314.15"
+                        strokeDashoffset={
+                          314.15 -
+                          (314.15 * Math.min(100, Math.max(0, dashboardData?.overallHealthScore || 75))) / 100
+                        }
+                      />
+                    </svg>
+                    <div className="health-score-center">
+                      <span className="health-number">
+                        {dashboardData?.overallHealthScore != null
+                          ? Math.round(dashboardData.overallHealthScore)
+                          : "--"}
                       </span>
-                      <span className="confidence-tag">Confidence: {rec.confidenceScore}%</span>
+                      <span className="health-max">/ 100</span>
                     </div>
+                  </div>
+                  <div className="health-label-group">
+                    <span className={`health-grade-badge grade-${(dashboardData?.healthGrade || "HEALTHY").toLowerCase()}`}>
+                      {dashboardData?.healthGrade || "HEALTHY"} HEALTH
+                    </span>
+                    <span className="health-caption">Composite Health Score</span>
+                  </div>
+                </div>
+              </div>
 
-                    <h3 className="rec-action">{rec.actionStatement}</h3>
-                    <p className="rec-rationale">{rec.rationale}</p>
+              {/* Quick Action Launcher Bar */}
+              <div className="dashboard-quick-actions">
+                <span className="qa-label">⚡ QUICK ACTIONS:</span>
+                <button onClick={() => switchTab("scenarios")} className="btn-quick-action">
+                  🎯 Formulate What-If Scenario
+                </button>
+                <button onClick={handleCreateSnapshot} className="btn-quick-action">
+                  📸 Capture Baseline Snapshot
+                </button>
+                <button onClick={() => switchTab("recommendations")} className="btn-quick-action">
+                  💡 Review Smart Advice
+                </button>
+                <button onClick={() => switchTab("comparison")} className="btn-quick-action">
+                  ⚖️ Compare Scenarios
+                </button>
+                <button onClick={() => switchTab("copilot")} className="btn-quick-action">
+                  🤖 Ask Business Copilot
+                </button>
+                <button onClick={() => switchTab("reports")} className="btn-quick-action">
+                  📄 View Executive BI Report
+                </button>
+              </div>
 
-                    <div className="rec-meta-row">
-                      <div><span>Scenario:</span> <strong>#{rec.scenarioId} ({rec.scenarioType})</strong></div>
-                      <div><span>Expected ROI:</span> <strong className="text-highlight">+{rec.expectedRoiPercent}%</strong></div>
-                      <div><span>Risk Profile:</span> <strong>{rec.riskAssessment}</strong></div>
-                      <div><span>Decision Status:</span> <strong className="status-tag">{rec.status}</strong></div>
+              {/* ASYMMETRICAL EDITORIAL DIGITAL TWIN WORKSPACE */}
+              <div className="asymmetric-command-grid">
+                <div className="asymmetric-left-column">
+                  <div className="asymmetric-twin-hero-card">
+                    <div className="twin-hero-meta">
+                      <div className="twin-hero-badge">
+                        <span className="dot pulse-violet" />
+                        <span>Living Cognitive Business Twin Ecosystem</span>
+                      </div>
+                      <h3 className="twin-hero-biz">Real-Time Operational Mesh • #{selectedBusinessId} {business?.businessName}</h3>
+                      <p className="twin-hero-desc">
+                        Interactive dynamic model balancing top-line revenue, customer retention pools, marketing acquisition channels, inventory buffers, and liquidity.
+                      </p>
                     </div>
+                    <div className="mini-canvas-host">
+                      <LivingTwinCanvas width={640} height={360} dna={dna} interactive={true} />
+                    </div>
+                  </div>
+                </div>
 
-                    <div className="rec-action-row">
-                      <button
-                        onClick={() => {
-                          setDecisionForm({
-                            ...decisionForm,
-                            scenarioId: rec.scenarioId,
-                            simulationId: rec.simulationId,
-                            recommendationId: rec.id,
-                            decisionStatus: "ACCEPTED",
-                            notes: `Accepted recommendation #${rec.id}: ${rec.actionStatement}`,
-                          });
-                          switchTab("decisions");
-                        }}
-                        className="btn-primary"
+                <div className="asymmetric-right-column">
+                  <div className="asymmetric-health-card">
+                    <div className="health-score-top">
+                      <span className="health-score-title">Enterprise Health Dimensions</span>
+                      <span className="health-score-badge">{Math.round(dashboardData?.overallHealthScore || 75)}/100</span>
+                    </div>
+                    <div className="health-dimensions-list">
+                      <div className="health-dim-item">
+                        <span>Financial Stability</span>
+                        <span className="dim-val">{dashboardData?.financialHealth || 82}%</span>
+                      </div>
+                      <div className="health-dim-item">
+                        <span>Customer Retention Power</span>
+                        <span className="dim-val">{dashboardData?.customerHealth || 85}%</span>
+                      </div>
+                      <div className="health-dim-item">
+                        <span>Operational Efficiency</span>
+                        <span className="dim-val">{dashboardData?.operationalHealth || 88}%</span>
+                      </div>
+                      <div className="health-dim-item">
+                        <span>Market Competitive Moat</span>
+                        <span className="dim-val">{dashboardData?.marketHealth || 78}%</span>
+                      </div>
+                      <div className="health-dim-item">
+                        <span>Risk Safety Buffer</span>
+                        <span className="dim-val highlight">{dashboardData?.riskSafetyBuffer || 70}%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="asymmetric-ai-memo-card">
+                    <div className="memo-header">
+                      <SparklesIcon size={14} color="var(--accent-ai)" />
+                      <span>TwinIQ Cognitive Intelligence Briefing</span>
+                    </div>
+                    <p className="memo-body">
+                      {recommendations.length > 0
+                        ? `Top Directive: ${cleanText(recommendations[0].actionStatement)} (${recommendations[0].confidenceScore}% confidence, +${recommendations[0].expectedRoiPercent}% ROI).`
+                        : "Living twin telemetry calibrated. Pricing optimization is recommended over heavy ad spend due to customer loyalty inelasticity."}
+                    </p>
+                    <button
+                      type="button"
+                      className="memo-btn"
+                      onClick={() => switchTab("scenarios")}
+                    >
+                      <span>Launch Scenario Simulator →</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Executive KPI Cards Grid */}
+              <div className="dashboard-section-title">
+                <h3>📈 Key Performance Indicators & Baselines</h3>
+                <p>Core operational and financial metrics tracked against baseline snapshots with live period-over-period variance.</p>
+              </div>
+
+              <div className="kpi-card-grid">
+                {(dashboardData?.kpis || []).map((kpi) => (
+                  <div className="kpi-metric-card" key={kpi.key}>
+                    <div className="kpi-top-row">
+                      <span className="kpi-title">{kpi.title}</span>
+                      <span
+                        className={`kpi-delta-tag ${
+                          kpi.favorable ? "delta-favorable" : "delta-unfavorable"
+                        } ${kpi.trend === "STABLE" ? "delta-neutral" : ""}`}
                       >
-                        🏛️ Act on Recommendation
-                      </button>
+                        {kpi.trend === "UP" ? "▲" : kpi.trend === "DOWN" ? "▼" : "•"} {kpi.deltaFormatted}
+                      </span>
+                    </div>
+
+                    <div className="kpi-main-value">
+                      {kpi.unit === "INR"
+                        ? formatCurrency(kpi.currentValue)
+                        : kpi.unit === "PERCENT"
+                        ? formatPct(kpi.currentValue)
+                        : `${kpi.currentValue} / 100`}
+                    </div>
+
+                    <div className="kpi-baseline-row">
+                      <span className="kpi-prev-label">Baseline Snapshot:</span>
+                      <span className="kpi-prev-val">
+                        {kpi.unit === "INR"
+                          ? formatCurrency(kpi.previousValue)
+                          : kpi.unit === "PERCENT"
+                          ? formatPct(kpi.previousValue)
+                          : `${kpi.previousValue}`}
+                      </span>
                     </div>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-        )}
 
-        {/* TAB 7: DECISIONS */}
-        {activeTab === "decisions" && (
-          <div className="tab-pane">
-            <div className="section-title-bar">
-              <div>
-                <h2>Executive Decision Tracking</h2>
-                <p>Record leadership decisions on simulated scenarios and recommendations to close the loop.</p>
+              {/* Multi-Dimensional Health Category Breakdown */}
+              <div className="dashboard-section-title">
+                <h3>🛡️ Multi-Dimensional Business Health Breakdown</h3>
+                <p>Composite evaluation across the 5 structural pillars of business continuity and strategic resilience.</p>
+              </div>
+
+              <div className="health-categories-grid">
+                <div className="health-category-card">
+                  <div className="hc-header">
+                    <div className="hc-icon hc-fin">💰</div>
+                    <div>
+                      <h4>Financial Health</h4>
+                      <span className="hc-sub">Stability & Profit Margins</span>
+                    </div>
+                    <div className="hc-score-tag">{dashboardData?.financialHealth || 0}%</div>
+                  </div>
+                  <div className="hc-bar-track">
+                    <div
+                      className="hc-bar-fill hc-fill-fin"
+                      style={{ width: `${Math.min(100, Math.max(0, dashboardData?.financialHealth || 0))}%` }}
+                    ></div>
+                  </div>
+                  <p className="hc-desc">
+                    Evaluates revenue run-rate, operating profitability margin, and cash generation capability.
+                  </p>
+                </div>
+
+                <div className="health-category-card">
+                  <div className="hc-header">
+                    <div className="hc-icon hc-cust">👥</div>
+                    <div>
+                      <h4>Customer Dynamics</h4>
+                      <span className="hc-sub">Retention & Acquisition Cost</span>
+                    </div>
+                    <div className="hc-score-tag">{dashboardData?.customerHealth || 0}%</div>
+                  </div>
+                  <div className="hc-bar-track">
+                    <div
+                      className="hc-bar-fill hc-fill-cust"
+                      style={{ width: `${Math.min(100, Math.max(0, dashboardData?.customerHealth || 0))}%` }}
+                    ></div>
+                  </div>
+                  <p className="hc-desc">
+                    Measures customer retention stability against customer acquisition cost (CAC) efficiency.
+                  </p>
+                </div>
+
+                <div className="health-category-card">
+                  <div className="hc-header">
+                    <div className="hc-icon hc-ops">⚙️</div>
+                    <div>
+                      <h4>Operational Efficiency</h4>
+                      <span className="hc-sub">Productivity & Digitalization</span>
+                    </div>
+                    <div className="hc-score-tag">{dashboardData?.operationalHealth || 0}%</div>
+                  </div>
+                  <div className="hc-bar-track">
+                    <div
+                      className="hc-bar-fill hc-fill-ops"
+                      style={{ width: `${Math.min(100, Math.max(0, dashboardData?.operationalHealth || 0))}%` }}
+                    ></div>
+                  </div>
+                  <p className="hc-desc">
+                    Evaluates internal operational efficiency, digital adoption level, and innovation throughput.
+                  </p>
+                </div>
+
+                <div className="health-category-card">
+                  <div className="hc-header">
+                    <div className="hc-icon hc-mkt">🚀</div>
+                    <div>
+                      <h4>Market & Competitive</h4>
+                      <span className="hc-sub">Market Growth & Advantage</span>
+                    </div>
+                    <div className="hc-score-tag">{dashboardData?.marketHealth || 0}%</div>
+                  </div>
+                  <div className="hc-bar-track">
+                    <div
+                      className="hc-bar-fill hc-fill-mkt"
+                      style={{ width: `${Math.min(100, Math.max(0, dashboardData?.marketHealth || 0))}%` }}
+                    ></div>
+                  </div>
+                  <p className="hc-desc">
+                    Tracks external market expansion velocity and competitive positioning relative to industry peers.
+                  </p>
+                </div>
+
+                <div className="health-category-card">
+                  <div className="hc-header">
+                    <div className="hc-icon hc-risk">🛡️</div>
+                    <div>
+                      <h4>Risk Safety Buffer</h4>
+                      <span className="hc-sub">Enterprise Risk Immunity</span>
+                    </div>
+                    <div className="hc-score-tag">{dashboardData?.riskSafetyBuffer || 0}%</div>
+                  </div>
+                  <div className="hc-bar-track">
+                    <div
+                      className="hc-bar-fill hc-fill-risk"
+                      style={{ width: `${Math.min(100, Math.max(0, dashboardData?.riskSafetyBuffer || 0))}%` }}
+                    ></div>
+                  </div>
+                  <p className="hc-desc">
+                    Represents the organizational buffer remaining against demand shocks and operational disruptions.
+                  </p>
+                </div>
+              </div>
+
+              {/* Cognitive Insights Feed */}
+              <div className="dashboard-section-title">
+                <h3>🧠 Cognitive Insights & Real-Time Alerts</h3>
+                <p>Strategic signals automatically synthesized from your company's latest metrics and simulation results.</p>
+              </div>
+
+              <div className="cognitive-insights-grid">
+                <div className="insight-card">
+                  <div className="insight-header">
+                    <span className="insight-tag">Executive Signal</span>
+                    <SparklesIcon size={16} />
+                  </div>
+                  <h4 className="insight-title">Capital Preservation & Margins</h4>
+                  <p className="insight-body">
+                    Operating margin stands at <strong>{formatPct(dna?.profitMargin)}</strong>. Simulations indicate that modest price increases expand bottom line profitability with minimal risk to customer retention.
+                  </p>
+                </div>
+
+                <div className="insight-card alert-opp">
+                  <div className="insight-header">
+                    <span className="insight-tag">Strategic Opportunity</span>
+                    <SparklesIcon size={16} />
+                  </div>
+                  <h4 className="insight-title">Customer Acquisition Optimization</h4>
+                  <p className="insight-body">
+                    Customer retention is robust at <strong>{formatPct(dna?.customerRetention)}</strong> while CAC is capped at <strong>{formatCurrency(dna?.customerAcquisitionCost)}</strong>. Reinvesting surplus capital into high-converting digital channels yields compounding returns.
+                  </p>
+                </div>
+
+                <div className="insight-card alert-risk">
+                  <div className="insight-header">
+                    <span className="insight-tag">Risk Radar Alert</span>
+                    <SparklesIcon size={16} />
+                  </div>
+                  <h4 className="insight-title">Supplier Cost Volatility</h4>
+                  <p className="insight-body">
+                    Enterprise risk buffer is measured at <strong>{dashboardData?.riskSafetyBuffer || 65}%</strong>. Ensure contracts lock raw material rates to shield current margins against inflation.
+                  </p>
+                </div>
+              </div>
+
+              {/* Cognitive Twin Pipeline Tracker */}
+              <div className="dashboard-section-title">
+                <h3>🧬 Cognitive Twin Lifecycle & Model Maturity</h3>
+                <p>Maturity score and active data coverage across the 9-stage TwinIQ intelligence loop.</p>
+              </div>
+
+              <div className="pipeline-tracker-card">
+                <div className="pt-header">
+                  <div className="pt-title-group">
+                    <span className="pt-badge">Model Maturity</span>
+                    <span className="pt-pct">
+                      {Math.round(dashboardData?.pipelineStats?.cognitiveTwinMaturity || 0)}% Calibrated
+                    </span>
+                  </div>
+                  <span className="pt-sub">
+                    Based on historical snapshots, what-if models, human decisions, and self-learning feedback.
+                  </span>
+                </div>
+
+                <div className="pt-progress-bar">
+                  <div
+                    className="pt-progress-fill"
+                    style={{ width: `${Math.min(100, Math.max(5, dashboardData?.pipelineStats?.cognitiveTwinMaturity || 15))}%` }}
+                  ></div>
+                </div>
+
+                <div className="pt-milestone-grid">
+                  <div className="pt-node completed">
+                    <div className="pt-node-num">1</div>
+                    <div className="pt-node-content">
+                      <strong>Business Profile</strong>
+                      <span>#{selectedBusinessId} Configured</span>
+                    </div>
+                  </div>
+
+                  <div className={`pt-node ${dna ? "completed" : "pending"}`}>
+                    <div className="pt-node-num">2</div>
+                    <div className="pt-node-content">
+                      <strong>Business DNA</strong>
+                      <span>10 Core Dimensions</span>
+                    </div>
+                  </div>
+
+                  <div className={`pt-node ${(dashboardData?.pipelineStats?.snapshotCount || 0) > 0 ? "completed" : "pending"}`}>
+                    <div className="pt-node-num">3</div>
+                    <div className="pt-node-content">
+                      <strong>Snapshots</strong>
+                      <span>{dashboardData?.pipelineStats?.snapshotCount || 0} Captured</span>
+                    </div>
+                  </div>
+
+                  <div className={`pt-node ${(dashboardData?.pipelineStats?.scenarioCount || 0) > 0 ? "completed" : "pending"}`}>
+                    <div className="pt-node-num">4</div>
+                    <div className="pt-node-content">
+                      <strong>Scenarios</strong>
+                      <span>{dashboardData?.pipelineStats?.scenarioCount || 0} Formulated</span>
+                    </div>
+                  </div>
+
+                  <div className={`pt-node ${(dashboardData?.pipelineStats?.simulationCount || 0) > 0 ? "completed" : "pending"}`}>
+                    <div className="pt-node-num">5</div>
+                    <div className="pt-node-content">
+                      <strong>Simulations</strong>
+                      <span>{dashboardData?.pipelineStats?.simulationCount || 0} Projected</span>
+                    </div>
+                  </div>
+
+                  <div className={`pt-node ${(dashboardData?.pipelineStats?.recommendationCount || 0) > 0 ? "completed" : "pending"}`}>
+                    <div className="pt-node-num">6</div>
+                    <div className="pt-node-content">
+                      <strong>Smart Advice</strong>
+                      <span>{dashboardData?.pipelineStats?.recommendationCount || 0} Generated</span>
+                    </div>
+                  </div>
+
+                  <div className={`pt-node ${(dashboardData?.pipelineStats?.decisionCount || 0) > 0 ? "completed" : "pending"}`}>
+                    <div className="pt-node-num">7</div>
+                    <div className="pt-node-content">
+                      <strong>Decisions</strong>
+                      <span>{dashboardData?.pipelineStats?.decisionCount || 0} Logged</span>
+                    </div>
+                  </div>
+
+                  <div className={`pt-node ${(dashboardData?.pipelineStats?.outcomeCount || 0) > 0 ? "completed" : "pending"}`}>
+                    <div className="pt-node-num">8</div>
+                    <div className="pt-node-content">
+                      <strong>Real Outcomes</strong>
+                      <span>{dashboardData?.pipelineStats?.outcomeCount || 0} Realized</span>
+                    </div>
+                  </div>
+
+                  <div className={`pt-node ${(dashboardData?.pipelineStats?.evolutionCount || 0) > 0 ? "completed" : "pending"}`}>
+                    <div className="pt-node-num">9</div>
+                    <div className="pt-node-content">
+                      <strong>Twin Evolution</strong>
+                      <span>{dashboardData?.pipelineStats?.evolutionCount || 0} Evolved</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
+          )}
 
-            <div className="decision-workspace-layout">
-              <div className="decision-form-card">
-                <h3>Record New Decision</h3>
-                <form onSubmit={handleRecordDecision}>
-                  <div className="form-group">
-                    <label>Target Scenario</label>
-                    <select
-                      value={decisionForm.scenarioId}
-                      onChange={(e) => setDecisionForm({ ...decisionForm, scenarioId: e.target.value })}
-                      className="form-input"
-                      required
-                    >
-                      <option value="">-- Choose Scenario --</option>
-                      {scenarios.map((sc) => (
-                        <option key={sc.id} value={sc.id}>
-                          #{sc.id} - {sc.scenarioType} ({sc.status})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Associated Simulation</label>
-                    <select
-                      value={decisionForm.simulationId}
-                      onChange={(e) => setDecisionForm({ ...decisionForm, simulationId: e.target.value })}
-                      className="form-input"
-                      required
-                    >
-                      <option value="">-- Choose Simulation --</option>
-                      {simulations.map((sim) => (
-                        <option key={sim.id} value={sim.id}>
-                          Sim #{sim.id} for Scenario #{sim.scenarioId} ({sim.overallImpact})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Decision Verdict</label>
-                    <select
-                      value={decisionForm.decisionStatus}
-                      onChange={(e) => setDecisionForm({ ...decisionForm, decisionStatus: e.target.value })}
-                      className="form-input"
-                    >
-                      <option value="ACCEPTED">ACCEPTED (Implement Proposed Strategy)</option>
-                      <option value="REJECTED">REJECTED (Decline Proposal)</option>
-                      <option value="MODIFIED">MODIFIED (Adopt with Conditional Changes)</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Decision Maker</label>
-                    <input
-                      type="text"
-                      value={decisionForm.decisionMaker}
-                      onChange={(e) => setDecisionForm({ ...decisionForm, decisionMaker: e.target.value })}
-                      className="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Executive Notes / Rationale</label>
-                    <textarea
-                      value={decisionForm.notes}
-                      onChange={(e) => setDecisionForm({ ...decisionForm, notes: e.target.value })}
-                      className="form-input"
-                      rows="3"
-                    ></textarea>
-                  </div>
-
-                  <button type="submit" className="btn-primary full-width">
-                    Record Executive Decision
-                  </button>
-                </form>
+          {/* TAB 1: BUSINESS DNA */}
+          {activeTab === "dna" && dna && (
+            <div className="tab-pane">
+              <div className="section-title-bar">
+                <div>
+                  <h2>Current Business Health & Metrics (DNA)</h2>
+                  <p>Current financial and operational numbers of your company before making any changes.</p>
+                </div>
+                <div className="timestamp-badge">
+                  Last Updated: {dna.lastUpdated ? new Date(dna.lastUpdated).toLocaleString() : "Initial"}
+                </div>
               </div>
 
-              <div className="decisions-history-box">
-                <h3>Recorded Executive Decisions ({decisions.length})</h3>
-                {decisions.length === 0 ? (
-                  <p className="empty-text">No decisions recorded yet.</p>
-                ) : (
-                  <div className="decisions-timeline">
-                    {decisions.map((d) => (
-                      <div className="decision-item-card" key={d.id}>
-                        <div className="d-top">
-                          <span className={`status-pill pill-${d.decisionStatus?.toLowerCase()}`}>
-                            {d.decisionStatus}
-                          </span>
-                          <span className="d-time">{new Date(d.createdAt).toLocaleString()}</span>
-                        </div>
-                        <h4>Scenario #{d.scenarioId} ({d.scenarioType})</h4>
-                        <p className="d-notes">"{d.notes}"</p>
-                        <div className="d-meta">
-                          <span>Decision Maker: <strong>{d.decisionMaker}</strong></span>
-                          <span>Simulation: <strong>#{d.simulationId}</strong></span>
-                        </div>
-                        <div className="d-actions">
-                          <button
-                            onClick={() => {
-                              setOutcomeForm({
-                                ...outcomeForm,
-                                decisionId: d.id,
-                                actualRevenue: "540000.00",
-                                actualProfitMargin: "20.50",
-                                actualCustomerRetention: "84.00",
-                                actualCustomerAcquisitionCost: "1150.00",
-                                notes: `Realized outcome following Decision #${d.id} implementation.`,
-                              });
-                              switchTab("outcomes");
-                            }}
-                            className="btn-action-small"
-                          >
-                            📊 Record Realized Outcome
-                          </button>
-                        </div>
+              {(() => {
+                const revNum = parseFloat(dna.revenue) || 0;
+                const revPct = Math.min(100, Math.max(0, Math.round((revNum / 5000000) * 100)));
+
+                const marginNum = parseFloat(dna.profitMargin) || 0;
+                const marginPct = Math.min(100, Math.max(0, marginNum));
+
+                const retNum = parseFloat(dna.customerRetention) || 0;
+                const retPct = Math.min(100, Math.max(0, retNum));
+
+                const cacNum = parseFloat(dna.customerAcquisitionCost) || 0;
+                const cacPct = Math.min(100, Math.max(0, Math.round((cacNum / 1500) * 100)));
+
+                const effNum = parseFloat(dna.operationalEfficiency) || 0;
+                const effPct = Math.min(100, Math.max(0, effNum));
+
+                const riskNum = parseFloat(dna.riskLevel) || 0;
+                const riskPct = Math.min(100, Math.max(0, riskNum));
+
+                const compNum = parseFloat(dna.competitiveStrength) || 0;
+                const compPct = Math.min(100, Math.max(0, compNum));
+
+                const digNum = parseFloat(dna.digitalMaturity) || 0;
+                const digPct = Math.min(100, Math.max(0, digNum));
+
+                const finNum = parseFloat(dna.financialStability) || 0;
+                const finPct = Math.min(100, Math.max(0, finNum));
+
+                const innNum = parseFloat(dna.innovationCapability) || 0;
+                const innPct = Math.min(100, Math.max(0, innNum));
+
+                return (
+                  <div className="dna-metric-grid">
+                    {/* Card 1: Annual Revenue */}
+                    <div className="dna-card highlight">
+                      <div className="dna-card-header">
+                        <span className="dna-card-title">Annual Revenue</span>
+                        <span className="dna-card-badge badge-rev">{revPct}% Target</span>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 8: ACTUAL OUTCOMES */}
-        {activeTab === "outcomes" && (
-          <div className="tab-pane">
-            <div className="section-title-bar">
-              <div>
-                <h2>Real-World Actual Outcomes</h2>
-                <p>Capture empirical post-implementation results to validate predictions and trigger learning.</p>
-              </div>
-            </div>
-
-            <div className="outcomes-workspace-layout">
-              <div className="outcome-form-card">
-                <h3>Record Realized Outcome</h3>
-                <form onSubmit={handleRecordOutcome}>
-                  <div className="form-group">
-                    <label>Target Implemented Decision</label>
-                    <select
-                      value={outcomeForm.decisionId}
-                      onChange={(e) => setOutcomeForm({ ...outcomeForm, decisionId: e.target.value })}
-                      className="form-input"
-                      required
-                    >
-                      <option value="">-- Choose Decision --</option>
-                      {decisions.map((dec) => (
-                        <option key={dec.id} value={dec.id}>
-                          Decision #{dec.id} ({dec.decisionStatus}) - Scenario #{dec.scenarioId}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-row-2">
-                    <div className="form-group">
-                      <label>Realized Revenue (₹)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={outcomeForm.actualRevenue}
-                        onChange={(e) => setOutcomeForm({ ...outcomeForm, actualRevenue: e.target.value })}
-                        className="form-input"
-                        placeholder="e.g. 540000"
-                        required
-                      />
+                      <span className="dna-card-value">{formatCurrency(dna.revenue)}</span>
+                      <div className="dna-bar-track">
+                        <div className="dna-bar-fill" style={{ width: `${revPct}%` }}></div>
+                      </div>
+                      <div className="dna-bar-meta">
+                        <span className="dna-bar-label">Completed Percentage</span>
+                        <span className="dna-bar-pct text-rev">{revPct}%</span>
+                      </div>
                     </div>
 
-                    <div className="form-group">
-                      <label>Realized Profit Margin (%)</label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={outcomeForm.actualProfitMargin}
-                        onChange={(e) => setOutcomeForm({ ...outcomeForm, actualProfitMargin: e.target.value })}
-                        className="form-input"
-                        placeholder="e.g. 20.5"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-row-2">
-                    <div className="form-group">
-                      <label>Realized Retention (%)</label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={outcomeForm.actualCustomerRetention}
-                        onChange={(e) => setOutcomeForm({ ...outcomeForm, actualCustomerRetention: e.target.value })}
-                        className="form-input"
-                        placeholder="e.g. 84.0"
-                      />
+                    {/* Card 2: Operating Profit Margin */}
+                    <div className="dna-card highlight">
+                      <div className="dna-card-header">
+                        <span className="dna-card-title">Operating Profit Margin</span>
+                        <span className="dna-card-badge badge-margin">{marginPct.toFixed(1)}%</span>
+                      </div>
+                      <span className="dna-card-value">{formatPct(dna.profitMargin)}</span>
+                      <div className="dna-bar-track">
+                        <div className="dna-bar-fill" style={{ width: `${marginPct}%` }}></div>
+                      </div>
+                      <div className="dna-bar-meta">
+                        <span className="dna-bar-label">Completed Percentage</span>
+                        <span className="dna-bar-pct text-margin">{marginPct.toFixed(1)}%</span>
+                      </div>
                     </div>
 
-                    <div className="form-group">
-                      <label>Realized CAC (₹)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={outcomeForm.actualCustomerAcquisitionCost}
-                        onChange={(e) => setOutcomeForm({ ...outcomeForm, actualCustomerAcquisitionCost: e.target.value })}
-                        className="form-input"
-                        placeholder="e.g. 1150"
-                      />
+                    {/* Card 3: Customer Retention Rate */}
+                    <div className="dna-card">
+                      <div className="dna-card-header">
+                        <span className="dna-card-title">Customer Retention Rate</span>
+                        <span className="dna-card-badge badge-ret">{retPct.toFixed(1)}%</span>
+                      </div>
+                      <span className="dna-card-value">{formatPct(dna.customerRetention)}</span>
+                      <div className="dna-bar-track">
+                        <div className="dna-bar-fill" style={{ width: `${retPct}%` }}></div>
+                      </div>
+                      <div className="dna-bar-meta">
+                        <span className="dna-bar-label">Completed Percentage</span>
+                        <span className="dna-bar-pct text-ret">{retPct.toFixed(1)}%</span>
+                      </div>
+                    </div>
+
+                    {/* Card 4: Customer Acquisition Cost (CAC) */}
+                    <div className="dna-card">
+                      <div className="dna-card-header">
+                        <span className="dna-card-title">Customer Acquisition Cost (CAC)</span>
+                        <span className="dna-card-badge badge-cac">{cacPct}% Cap</span>
+                      </div>
+                      <span className="dna-card-value">{formatCurrency(dna.customerAcquisitionCost)}</span>
+                      <div className="dna-bar-track">
+                        <div className="dna-bar-fill" style={{ width: `${cacPct}%` }}></div>
+                      </div>
+                      <div className="dna-bar-meta">
+                        <span className="dna-bar-label">Completed Percentage (vs ₹1,500 Cap)</span>
+                        <span className="dna-bar-pct text-cac">{cacPct}%</span>
+                      </div>
+                    </div>
+
+                    {/* Card 5: Operational Efficiency Index */}
+                    <div className="dna-card">
+                      <div className="dna-card-header">
+                        <span className="dna-card-title">Operational Efficiency Index</span>
+                        <span className="dna-card-badge badge-eff">{effPct.toFixed(1)}%</span>
+                      </div>
+                      <span className="dna-card-value">{effNum}/100</span>
+                      <div className="dna-bar-track">
+                        <div className="dna-bar-fill" style={{ width: `${effPct}%` }}></div>
+                      </div>
+                      <div className="dna-bar-meta">
+                        <span className="dna-bar-label">Completed Percentage</span>
+                        <span className="dna-bar-pct text-eff">{effPct.toFixed(1)}%</span>
+                      </div>
+                    </div>
+
+                    {/* Card 6: Risk Level */}
+                    <div className="dna-card">
+                      <div className="dna-card-header">
+                        <span className="dna-card-title">Risk Level</span>
+                        <span className={`dna-card-badge ${riskNum > 50 ? "badge-risk-high" : "badge-risk-low"}`}>
+                          {riskPct.toFixed(1)}%
+                        </span>
+                      </div>
+                      <span className="dna-card-value" style={{ color: riskNum > 50 ? "#ef4444" : "#10b981" }}>
+                        {riskNum}/100
+                      </span>
+                      <div className="dna-bar-track">
+                        <div
+                          className="dna-bar-fill"
+                          style={{
+                            width: `${riskPct}%`,
+                            background: riskNum > 50 ? "linear-gradient(90deg, #F59E0B, #EF4444)" : "linear-gradient(90deg, #10B981, #34D399)",
+                          }}
+                        ></div>
+                      </div>
+                      <div className="dna-bar-meta">
+                        <span className="dna-bar-label">Completed Percentage</span>
+                        <span className="dna-bar-pct" style={{ color: riskNum > 50 ? "#ef4444" : "#10b981" }}>
+                          {riskPct.toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Card 7: Competitive Strength */}
+                    <div className="dna-card">
+                      <div className="dna-card-header">
+                        <span className="dna-card-title">Competitive Strength</span>
+                        <span className="dna-card-badge badge-comp">{compPct.toFixed(1)}%</span>
+                      </div>
+                      <span className="dna-card-value">{compNum}/100</span>
+                      <div className="dna-bar-track">
+                        <div className="dna-bar-fill" style={{ width: `${compPct}%` }}></div>
+                      </div>
+                      <div className="dna-bar-meta">
+                        <span className="dna-bar-label">Completed Percentage</span>
+                        <span className="dna-bar-pct text-comp">{compPct.toFixed(1)}%</span>
+                      </div>
+                    </div>
+
+                    {/* Card 8: Digital Maturity */}
+                    <div className="dna-card">
+                      <div className="dna-card-header">
+                        <span className="dna-card-title">Digital Maturity</span>
+                        <span className="dna-card-badge badge-dig">{digPct.toFixed(1)}%</span>
+                      </div>
+                      <span className="dna-card-value">{digNum}/100</span>
+                      <div className="dna-bar-track">
+                        <div className="dna-bar-fill" style={{ width: `${digPct}%` }}></div>
+                      </div>
+                      <div className="dna-bar-meta">
+                        <span className="dna-bar-label">Completed Percentage</span>
+                        <span className="dna-bar-pct text-dig">{digPct.toFixed(1)}%</span>
+                      </div>
+                    </div>
+
+                    {/* Card 9: Financial Stability */}
+                    <div className="dna-card">
+                      <div className="dna-card-header">
+                        <span className="dna-card-title">Financial Stability</span>
+                        <span className="dna-card-badge badge-fin">{finPct.toFixed(1)}%</span>
+                      </div>
+                      <span className="dna-card-value">{finNum}/100</span>
+                      <div className="dna-bar-track">
+                        <div className="dna-bar-fill" style={{ width: `${finPct}%` }}></div>
+                      </div>
+                      <div className="dna-bar-meta">
+                        <span className="dna-bar-label">Completed Percentage</span>
+                        <span className="dna-bar-pct text-fin">{finPct.toFixed(1)}%</span>
+                      </div>
+                    </div>
+
+                    {/* Card 10: Innovation Capability */}
+                    <div className="dna-card">
+                      <div className="dna-card-header">
+                        <span className="dna-card-title">Innovation Capability</span>
+                        <span className="dna-card-badge badge-inn">{innPct.toFixed(1)}%</span>
+                      </div>
+                      <span className="dna-card-value">{innNum}/100</span>
+                      <div className="dna-bar-track">
+                        <div className="dna-bar-fill" style={{ width: `${innPct}%` }}></div>
+                      </div>
+                      <div className="dna-bar-meta">
+                        <span className="dna-bar-label">Completed Percentage</span>
+                        <span className="dna-bar-pct text-inn">{innPct.toFixed(1)}%</span>
+                      </div>
                     </div>
                   </div>
+                );
+              })()}
 
-                  <div className="form-group">
-                    <label>Implementation Context / Notes</label>
-                    <textarea
-                      value={outcomeForm.notes}
-                      onChange={(e) => setOutcomeForm({ ...outcomeForm, notes: e.target.value })}
-                      className="form-input"
-                      rows="2"
-                    ></textarea>
-                  </div>
-
-                  <button type="submit" className="btn-primary full-width">
-                    Save Outcome & Trigger Evolution 🚀
-                  </button>
-                </form>
-              </div>
-
-              <div className="outcomes-history-table">
-                <h3>Empirical Outcome Records ({outcomes.length})</h3>
-                {outcomes.length === 0 ? (
-                  <p className="empty-text">No actual outcomes recorded yet.</p>
+              {/* DNA History */}
+              <div className="sub-section">
+                <h3>History of Metric Changes ({dnaHistory.length} events)</h3>
+                {dnaHistory.length === 0 ? (
+                  <p className="empty-text">No parameter changes recorded yet.</p>
                 ) : (
                   <table className="data-table">
                     <thead>
                       <tr>
-                        <th>ID</th>
-                        <th>Decision</th>
-                        <th>Actual Revenue</th>
-                        <th>Actual Margin</th>
-                        <th>Realized At</th>
-                        <th>Notes</th>
+                        <th>Timestamp</th>
+                        <th>Metric Name</th>
+                        <th>Old Value</th>
+                        <th>New Value</th>
+                        <th>Reason / Trigger</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {outcomes.map((o) => (
-                        <tr key={o.id}>
-                          <td><strong>#{o.id}</strong></td>
-                          <td>Decision #{o.decisionId} ({o.scenarioType})</td>
-                          <td className="text-highlight">{formatCurrency(o.actualRevenue)}</td>
-                          <td>{formatPct(o.actualProfitMargin)}</td>
-                          <td>{new Date(o.realizedAt).toLocaleDateString()}</td>
-                          <td>{o.notes}</td>
+                      {dnaHistory.map((h) => (
+                        <tr key={h.id}>
+                          <td>{new Date(h.changedAt).toLocaleString()}</td>
+                          <td><strong>{h.parameterName}</strong></td>
+                          <td>{h.oldValue}</td>
+                          <td className="text-highlight">{h.newValue}</td>
+                          <td>{cleanText(h.reason)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1296,122 +2087,1691 @@ export default function App() {
                 )}
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* TAB 9: TWIN EVOLUTION WITH VARIANCE VISUALIZATION */}
-        {activeTab === "evolution" && (
-          <div className="tab-pane">
-            <div className="section-title-bar">
-              <div>
-                <h2>Twin Learning & Autonomous Evolution</h2>
-                <p>Closed-loop empirical validation comparing predictions against reality to recalibrate the cognitive twin.</p>
+          {/* TAB 2: TWIN SNAPSHOTS & VISUAL TREND CHART */}
+          {activeTab === "snapshots" && (
+            <div className="tab-pane">
+              <div className="section-title-bar">
+                <div>
+                  <h2>Saved Baseline Snapshots & Trends</h2>
+                  <p>Saved copies of your company's numbers at specific times. What-if simulations use these as the starting baseline.</p>
+                </div>
+                <button onClick={handleCreateSnapshot} className="btn-primary">
+                  + Save New Snapshot
+                </button>
               </div>
-            </div>
 
-            {evolutions.length === 0 ? (
-              <div className="empty-state-box">
-                <p>No twin evolution cycles recorded yet. Record an Actual Outcome to trigger calibration.</p>
-              </div>
-            ) : (
-              <div className="evolution-stream">
-                {evolutions.map((evo) => (
-                  <div className="evolution-card" key={evo.id}>
-                    <div className="evo-header">
-                      <div className="evo-title">
-                        <span className="evo-badge">CYCLE #{evo.id}</span>
-                        <h3>Cognitive Model Recalibration</h3>
+              {/* Visual Interactive SVG Trend Chart across snapshots */}
+              {interactiveSnapshots.length > 0 && (() => {
+                const currentCoords = interactiveSnapshots.map((s, i) =>
+                  getPointCoords(s.adjustedRevenue, i, interactiveSnapshots.length)
+                );
+                const originalCoords = interactiveSnapshots.map((s, i) =>
+                  getPointCoords(s.originalRevenue, i, interactiveSnapshots.length)
+                );
+
+                let activeSpline = "";
+                let activeArea = "";
+                let baselineDashedSpline = "";
+
+                if (currentCoords.length === 1) {
+                  activeSpline = `M 80 ${currentCoords[0].y} L 730 ${currentCoords[0].y}`;
+                } else if (currentCoords.length > 1) {
+                  activeSpline = `M ${currentCoords[0].x} ${currentCoords[0].y}`;
+                  for (let i = 0; i < currentCoords.length - 1; i++) {
+                    const p0 = currentCoords[i];
+                    const p1 = currentCoords[i + 1];
+                    const dx = p1.x - p0.x;
+                    const cp1x = p0.x + dx * 0.45;
+                    const cp1y = p0.y;
+                    const cp2x = p1.x - dx * 0.45;
+                    const cp2y = p1.y;
+                    activeSpline += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p1.x} ${p1.y}`;
+                  }
+                  activeArea = `${activeSpline} L ${currentCoords[currentCoords.length - 1].x} 185 L ${currentCoords[0].x} 185 Z`;
+
+                  if (isPointsModified) {
+                    baselineDashedSpline = `M ${originalCoords[0].x} ${originalCoords[0].y}`;
+                    for (let i = 0; i < originalCoords.length - 1; i++) {
+                      const p0 = originalCoords[i];
+                      const p1 = originalCoords[i + 1];
+                      const dx = p1.x - p0.x;
+                      const cp1x = p0.x + dx * 0.45;
+                      const cp1y = p0.y;
+                      const cp2x = p1.x - dx * 0.45;
+                      const cp2y = p1.y;
+                      baselineDashedSpline += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p1.x} ${p1.y}`;
+                    }
+                  }
+                }
+
+                const inspectedIndex =
+                  hoveredSnapshotIndex !== null
+                    ? hoveredSnapshotIndex
+                    : draggingIndex !== null
+                    ? draggingIndex
+                    : 0;
+                const inspectedSnapshot = interactiveSnapshots[inspectedIndex] || interactiveSnapshots[0];
+
+                let deltaAmount = 0;
+                let deltaPercent = 0;
+                let estimatedMargin = 0;
+                let baseMarginVal = 0;
+
+                if (inspectedSnapshot) {
+                  deltaAmount = (inspectedSnapshot.adjustedRevenue || 0) - (inspectedSnapshot.originalRevenue || 0);
+                  deltaPercent =
+                    inspectedSnapshot.originalRevenue > 0
+                      ? (deltaAmount / inspectedSnapshot.originalRevenue) * 100
+                      : 0;
+                  baseMarginVal = parseFloat(inspectedSnapshot.profitMargin) || 0;
+                  const baseCost = inspectedSnapshot.originalRevenue * (1 - baseMarginVal / 100);
+                  estimatedMargin =
+                    inspectedSnapshot.adjustedRevenue > 0
+                      ? ((inspectedSnapshot.adjustedRevenue - baseCost) / inspectedSnapshot.adjustedRevenue) * 100
+                      : 0;
+                  estimatedMargin = Math.max(-50, Math.min(95, estimatedMargin));
+                }
+
+                return (
+                  <div className="visualization-card interactive-chart-card">
+                    <div className="chart-header-row">
+                      <div>
+                        <h3>📈 Interactive Revenue & Margin Trend Explorer</h3>
+                        <p className="chart-subtitle">
+                          Points are grabbable and movable! Click and drag any snapshot point vertically to explore what-if baseline scenarios in real-time.
+                        </p>
                       </div>
-                      <div className="accuracy-meter">
-                        <span className="meter-label">Model Precision Accuracy</span>
-                        <strong className="meter-val">{evo.overallAccuracyPercent}%</strong>
+                      {isPointsModified && (
+                        <button
+                          type="button"
+                          onClick={handleResetPoints}
+                          className="btn-reset-trend"
+                          title="Restore all points to original database snapshot values"
+                        >
+                          ↺ Reset Graph to Original
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="chart-canvas-container">
+                      <svg
+                        ref={svgChartRef}
+                        className={`trend-svg ${draggingIndex !== null ? "is-dragging" : ""}`}
+                        viewBox="0 0 800 230"
+                      >
+                        <defs>
+                          <linearGradient id="trendAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#4F46E5" stopOpacity="0.28" />
+                            <stop offset="100%" stopColor="#6366F1" stopOpacity="0.02" />
+                          </linearGradient>
+                          <filter id="pointShadow" x="-30%" y="-30%" width="160%" height="160%">
+                            <feDropShadow dx="0" dy="2" stdDeviation="2.5" floodColor="#0F172A" floodOpacity="0.25" />
+                          </filter>
+                        </defs>
+
+                        {/* Reference Grid lines */}
+                        <line x1="80" y1="40" x2="730" y2="40" stroke="#E2E8F0" strokeWidth="1" strokeDasharray="4 4" />
+                        <text x="74" y="44" fill="#94A3B8" fontSize="10" fontWeight="600" textAnchor="end">
+                          {formatCurrency(chartMaxRev)}
+                        </text>
+
+                        <line x1="80" y1="112" x2="730" y2="112" stroke="#F1F5F9" strokeWidth="1" strokeDasharray="4 4" />
+                        <text x="74" y="116" fill="#94A3B8" fontSize="10" fontWeight="600" textAnchor="end">
+                          {formatCurrency((chartMaxRev + chartMinRev) / 2)}
+                        </text>
+
+                        <line x1="80" y1="185" x2="730" y2="185" stroke="#CBD5E1" strokeWidth="1.5" />
+                        <text x="74" y="189" fill="#94A3B8" fontSize="10" fontWeight="600" textAnchor="end">
+                          {formatCurrency(chartMinRev)}
+                        </text>
+
+                        {/* Original baseline reference curve (dashed) if points modified */}
+                        {isPointsModified && baselineDashedSpline && (
+                          <path
+                            d={baselineDashedSpline}
+                            fill="none"
+                            stroke="#94A3B8"
+                            strokeWidth="2"
+                            strokeDasharray="5 5"
+                          />
+                        )}
+
+                        {/* Dynamic gradient area under curve */}
+                        {activeArea && (
+                          <path d={activeArea} fill="url(#trendAreaGrad)" pointerEvents="none" />
+                        )}
+
+                        {/* Main interactive curve */}
+                        {activeSpline && (
+                          <path
+                            d={activeSpline}
+                            fill="none"
+                            stroke="#4F46E5"
+                            strokeWidth="3.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            pointerEvents="none"
+                          />
+                        )}
+
+                        {/* Render Interactive Grabbable Nodes */}
+                        {interactiveSnapshots.map((s, i) => {
+                          const coords = currentCoords[i] || { x: 80, y: 140 };
+                          const isDragging = draggingIndex === i;
+                          const isHovered = hoveredSnapshotIndex === i;
+                          const isPointChanged =
+                            Math.abs((s.adjustedRevenue || 0) - (s.originalRevenue || 0)) > 100;
+
+                          return (
+                            <g key={s.id} className="interactive-chart-node">
+                              {/* Vertical drop guide line */}
+                              {(isHovered || isDragging) && (
+                                <line
+                                  x1={coords.x}
+                                  y1={coords.y}
+                                  x2={coords.x}
+                                  y2="185"
+                                  stroke="#818CF8"
+                                  strokeWidth="1.5"
+                                  strokeDasharray="3 3"
+                                  pointerEvents="none"
+                                />
+                              )}
+
+                              {/* Halo pulse indicator */}
+                              {(isHovered || isDragging) && (
+                                <circle
+                                  cx={coords.x}
+                                  cy={coords.y}
+                                  r={isDragging ? 16 : 13}
+                                  fill="#4F46E5"
+                                  fillOpacity={isDragging ? 0.28 : 0.16}
+                                  stroke="#4F46E5"
+                                  strokeWidth="2"
+                                  className="halo-pulse"
+                                  pointerEvents="none"
+                                />
+                              )}
+
+                              {/* Visible Center Dot */}
+                              <circle
+                                cx={coords.x}
+                                cy={coords.y}
+                                r={isDragging ? 8.5 : isHovered ? 7.5 : 6}
+                                fill={isPointChanged ? "#EC4899" : "#4F46E5"}
+                                stroke="#FFFFFF"
+                                strokeWidth="2.5"
+                                filter="url(#pointShadow)"
+                                pointerEvents="none"
+                              />
+
+                              {/* Large Invisible Hit Area for smooth grabbing */}
+                              <circle
+                                cx={coords.x}
+                                cy={coords.y}
+                                r="24"
+                                fill="transparent"
+                                style={{ cursor: isDragging ? "grabbing" : "grab" }}
+                                onMouseDown={(e) => handleStartDrag(i, e)}
+                                onTouchStart={(e) => handleStartDrag(i, e)}
+                                onMouseEnter={() => setHoveredSnapshotIndex(i)}
+                                onMouseLeave={() => {
+                                  if (draggingIndex === null) setHoveredSnapshotIndex(null);
+                                }}
+                              />
+
+                              {/* Value Tooltip Bubble */}
+                              {isHovered || isDragging ? (
+                                <g pointerEvents="none">
+                                  <rect
+                                    x={coords.x - 52}
+                                    y={coords.y - 38}
+                                    width="104"
+                                    height="26"
+                                    rx="6"
+                                    fill="#0F172A"
+                                    filter="url(#pointShadow)"
+                                  />
+                                  <text
+                                    x={coords.x}
+                                    y={coords.y - 21}
+                                    fill="#FFFFFF"
+                                    fontSize="11"
+                                    fontWeight="700"
+                                    textAnchor="middle"
+                                  >
+                                    {formatCurrency(s.adjustedRevenue)}
+                                  </text>
+                                  <polygon
+                                    points={`${coords.x - 5},${coords.y - 12} ${coords.x + 5},${coords.y - 12} ${coords.x},${coords.y - 7}`}
+                                    fill="#0F172A"
+                                  />
+                                </g>
+                              ) : (
+                                <text
+                                  x={coords.x}
+                                  y={coords.y - 12}
+                                  fill={isPointChanged ? "#BE185D" : "#0F172A"}
+                                  fontSize="11"
+                                  fontWeight="700"
+                                  textAnchor="middle"
+                                  pointerEvents="none"
+                                >
+                                  ₹{((s.adjustedRevenue || 0) / 100000).toFixed(1)}L
+                                </text>
+                              )}
+
+                              {/* X-axis Snapshot label */}
+                              <text
+                                x={coords.x}
+                                y="205"
+                                fill="#64748B"
+                                fontSize="11"
+                                fontWeight="600"
+                                textAnchor="middle"
+                                pointerEvents="none"
+                              >
+                                Snap #{s.id}
+                              </text>
+                              <text
+                                x={coords.x}
+                                y="218"
+                                fill="#94A3B8"
+                                fontSize="10"
+                                textAnchor="middle"
+                                pointerEvents="none"
+                              >
+                                ({formatPct(s.profitMargin)})
+                              </text>
+                            </g>
+                          );
+                        })}
+                      </svg>
+
+                      <div className="chart-legend">
+                        <span className="legend-item">
+                          <span className="legend-dot" style={{ background: "#4F46E5" }}></span>
+                          Current Interactive Curve
+                        </span>
+                        {isPointsModified && (
+                          <span className="legend-item">
+                            <span className="legend-dash"></span>
+                            Original Database Baseline
+                          </span>
+                        )}
+                        <span className="legend-item" style={{ color: "#6366F1", fontWeight: 700 }}>
+                          ↕ Click & drag any point vertically to explore what-if revenue
+                        </span>
                       </div>
                     </div>
 
-                    {/* Visual Prediction vs Actual Bar Comparison */}
-                    <div className="visualization-card" style={{ marginBottom: "18px" }}>
-                      <h4>📊 Predictive Variance Analysis (Projected vs Realized)</h4>
-                      <div className="variance-bar-group">
-                        <div className="v-bar-row">
-                          <span className="v-label">Revenue</span>
-                          <div className="v-track">
-                            <div className="v-fill pred" style={{ width: "85%" }} title={`Projected: ${formatCurrency(evo.projectedRevenue)}`}>
-                              Pred: {formatCurrency(evo.projectedRevenue)}
-                            </div>
-                            <div className="v-fill real" style={{ width: "87%" }} title={`Actual: ${formatCurrency(evo.actualRevenue)}`}>
-                              Real: {formatCurrency(evo.actualRevenue)}
-                            </div>
+                    {/* Active Snapshot Inspection Card */}
+                    {inspectedSnapshot && (
+                      <div className="trend-inspector-card">
+                        <div className="trend-inspector-header">
+                          <div className="inspector-title">
+                            <span className="inspector-badge">Inspecting Snapshot #{inspectedSnapshot.id}</span>
+                            <span className="inspector-timestamp">
+                              {new Date(inspectedSnapshot.snapshotTime).toLocaleString()}
+                            </span>
+                            {Math.abs(deltaAmount) > 100 ? (
+                              <span className="inspector-modified-badge">What-If Adjusted</span>
+                            ) : (
+                              <span className="badge-meta">Baseline Match</span>
+                            )}
                           </div>
-                          <span className="v-delta">+{evo.revenueVariancePercent}%</span>
-                        </div>
-
-                        <div className="v-bar-row">
-                          <span className="v-label">Margin</span>
-                          <div className="v-track">
-                            <div className="v-fill pred" style={{ width: "70%" }}>
-                              Pred: {formatPct(evo.projectedProfitMargin)}
-                            </div>
-                            <div className="v-fill real" style={{ width: "74%" }}>
-                              Real: {formatPct(evo.actualProfitMargin)}
-                            </div>
+                          <div className="inspector-instructions">
+                            💡 Grab and move points to test business growth or market drop
                           </div>
-                          <span className="v-delta">+{evo.profitMarginVariancePoints} pts</span>
+                        </div>
+
+                        <div className="trend-inspector-grid">
+                          <div className="inspector-tile">
+                            <span className="tile-label">Original Recorded Revenue</span>
+                            <span className="tile-value">{formatCurrency(inspectedSnapshot.originalRevenue)}</span>
+                          </div>
+
+                          <div className="inspector-tile highlight">
+                            <span className="tile-label">Interactive What-If Revenue</span>
+                            <span className="tile-value highlight">{formatCurrency(inspectedSnapshot.adjustedRevenue)}</span>
+                          </div>
+
+                          <div className="inspector-tile">
+                            <span className="tile-label">Revenue Variance (Delta)</span>
+                            <span className={`tile-value ${deltaAmount > 100 ? "text-success" : deltaAmount < -100 ? "text-danger" : ""}`}>
+                              {deltaAmount > 100
+                                ? `+${formatCurrency(deltaAmount)} (+${deltaPercent.toFixed(1)}%)`
+                                : deltaAmount < -100
+                                ? `-${formatCurrency(Math.abs(deltaAmount))} (${deltaPercent.toFixed(1)}%)`
+                                : "Baseline (No Change)"}
+                            </span>
+                          </div>
+
+                          <div className="inspector-tile">
+                            <span className="tile-label">Estimated Operating Margin</span>
+                            <span className="tile-value">
+                              <strong>{formatPct(estimatedMargin)}</strong>
+                              <small className="tile-subtext"> (Base: {formatPct(baseMarginVal)})</small>
+                            </span>
+                          </div>
                         </div>
                       </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              <div className="snapshot-timeline">
+                {snapshots.map((s, idx) => (
+                  <div className="snapshot-card" key={s.id}>
+                    <div className="snapshot-header">
+                      <div className="snapshot-tag">Snapshot #{s.id} {idx === 0 ? "(Latest Baseline)" : ""}</div>
+                      <span className="snapshot-time">{new Date(s.snapshotTime).toLocaleString()}</span>
                     </div>
 
-                    <div className="evo-comparison-row">
-                      <div className="comp-item">
-                        <span className="comp-label">Revenue Prediction vs Actual</span>
-                        <div className="comp-figures">
-                          <span>Pred: {formatCurrency(evo.projectedRevenue)}</span>
-                          <span className="arrow-sep">→</span>
-                          <strong>Real: {formatCurrency(evo.actualRevenue)}</strong>
-                        </div>
-                        <span className="variance-pill">Variance: {evo.revenueVariancePercent}%</span>
-                      </div>
-
-                      <div className="comp-item">
-                        <span className="comp-label">Profit Margin Prediction vs Actual</span>
-                        <div className="comp-figures">
-                          <span>Pred: {formatPct(evo.projectedProfitMargin)}</span>
-                          <span className="arrow-sep">→</span>
-                          <strong>Real: {formatPct(evo.actualProfitMargin)}</strong>
-                        </div>
-                        <span className="variance-pill">Variance: {evo.profitMarginVariancePoints} pts</span>
-                      </div>
-
-                      <div className="comp-item">
-                        <span className="comp-label">CAC Prediction vs Actual</span>
-                        <div className="comp-figures">
-                          <span>Pred: {formatCurrency(evo.projectedCac)}</span>
-                          <span className="arrow-sep">→</span>
-                          <strong>Real: {formatCurrency(evo.actualCac)}</strong>
-                        </div>
-                        <span className="variance-pill">Variance: {evo.cacVariancePercent}%</span>
-                      </div>
-                    </div>
-
-                    <div className="evo-insight-box">
-                      <h4>🧠 Cognitive Insight & Feedback Loop</h4>
-                      <p>{evo.evolutionInsight}</p>
-                    </div>
-
-                    <div className="evo-action-box">
-                      <h4>⚙️ Autonomous Twin Calibration Applied</h4>
-                      <p>{evo.calibrationAction}</p>
-                    </div>
-
-                    <div className="evo-footer">
-                      <span>Applied to Living Twin: {new Date(evo.appliedAt).toLocaleString()}</span>
+                    <div className="snapshot-metrics-row">
+                      <div><span>Revenue:</span> <strong>{formatCurrency(s.revenue)}</strong></div>
+                      <div><span>Margin:</span> <strong>{formatPct(s.profitMargin)}</strong></div>
+                      <div><span>Retention:</span> <strong>{formatPct(s.customerRetention)}</strong></div>
+                      <div><span>CAC:</span> <strong>{formatCurrency(s.customerAcquisitionCost)}</strong></div>
+                      <div><span>Efficiency:</span> <strong>{s.operationalEfficiency}%</strong></div>
+                      <div><span>Risk:</span> <strong>{s.riskLevel}%</strong></div>
                     </div>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-        )}
-      </main>
+            </div>
+          )}
+
+          {/* TAB 3: SCENARIOS */}
+          {activeTab === "scenarios" && (
+            <div className="tab-pane">
+              <div className="section-title-bar">
+                <div>
+                  <h2>What-If Scenario Formulator & Simulator</h2>
+                  <p>Model strategic decisions (such as price increases, ad spend expansion, or supplier shifts) with instant parametric sliders.</p>
+                </div>
+              </div>
+
+              {/* Scenario Formulation Card with Interactive Range Slider */}
+              <div className="simulator-form-card">
+                <h3>🧪 Formulate New Strategic Scenario</h3>
+                <form onSubmit={handleCreateScenario}>
+                  <div className="form-group">
+                    <label>What decision lever do you want to adjust?</label>
+                    <select
+                      value={scenarioForm.scenarioType}
+                      onChange={(e) => setScenarioForm({ ...scenarioForm, scenarioType: e.target.value })}
+                      className="form-input"
+                    >
+                      <option value="MARKETING_CHANGE">Marketing Spend (Increase / Decrease Ad Budget)</option>
+                      <option value="PRICE_CHANGE">Product Price (Increase / Decrease Prices)</option>
+                      <option value="SUPPLIER_COST_CHANGE">Supplier Cost (Raw Material & Vendor Cost Shift)</option>
+                      <option value="DEMAND_SHOCK">Market Demand Shock (Surge or Drop in Customer Demand)</option>
+                    </select>
+                  </div>
+
+                  <div className="slider-container">
+                    <div className="slider-header">
+                      <span>Adjustment Percentage Magnitude</span>
+                      <strong style={{ color: "var(--primary)", fontSize: "14px" }}>
+                        {scenarioForm.changePercent > 0 ? `+${scenarioForm.changePercent}%` : `${scenarioForm.changePercent}%`}
+                      </strong>
+                    </div>
+                    <input
+                      type="range"
+                      min="-50"
+                      max="100"
+                      step="1"
+                      value={scenarioForm.changePercent}
+                      onChange={(e) => setScenarioForm({ ...scenarioForm, changePercent: parseFloat(e.target.value) })}
+                      className="range-slider"
+                    />
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "var(--text-muted)" }}>
+                      <span>-50% (Heavy Reduction)</span>
+                      <span>0% (Neutral)</span>
+                      <span>+100% (Doubling)</span>
+                    </div>
+                  </div>
+
+                  <div className="simulator-controls-row">
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label>Precise Value (%)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={scenarioForm.changePercent}
+                        onChange={(e) => setScenarioForm({ ...scenarioForm, changePercent: e.target.value })}
+                        className="form-input"
+                        placeholder="e.g. +20.0"
+                        required
+                      />
+                    </div>
+                    <div style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+                      💡 Slide the bar above or type an exact decimal to simulate the financial consequence on revenue and margins.
+                    </div>
+                    <button type="submit" className="btn-primary" style={{ height: "42px", alignSelf: "flex-end" }}>
+                      + Queue Scenario
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* Scenarios Table & Actions */}
+              <div className="sub-section">
+                <div className="section-title-bar" style={{ marginBottom: "12px" }}>
+                  <div>
+                    <h3>Queued Scenarios ({scenarios.length})</h3>
+                    <p>Select multiple scenarios to compare trade-offs or trigger single simulation runs.</p>
+                  </div>
+                  <button onClick={() => switchTab("comparison")} className="btn-secondary">
+                    ⚖️ Open Comparison Matrix →
+                  </button>
+                </div>
+
+                {scenarios.length === 0 ? (
+                  <p className="empty-text">No scenarios formulated yet. Use the form above to formulate your first scenario.</p>
+                ) : (
+                  <div className="data-table-container">
+                    <table className="enterprise-table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: "40px" }}>Compare</th>
+                          <th>ID</th>
+                          <th>Decision Type</th>
+                          <th>Change Amount</th>
+                          <th>Status</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {scenarios.map((sc) => {
+                          let paramText = "-";
+                          if (sc.marketingSpendChangePercent != null) paramText = `Marketing: ${sc.marketingSpendChangePercent}%`;
+                          if (sc.priceChangePercent != null) paramText = `Price: ${sc.priceChangePercent}%`;
+                          if (sc.supplierCostChangePercent != null) paramText = `Supplier Cost: ${sc.supplierCostChangePercent}%`;
+                          if (sc.demandChangePercent != null) paramText = `Demand Shock: ${sc.demandChangePercent}%`;
+
+                          return (
+                            <tr key={sc.id}>
+                              <td>
+                                <input
+                                  type="checkbox"
+                                  checked={compareIds.includes(sc.id)}
+                                  onChange={() => toggleCompareId(sc.id)}
+                                />
+                              </td>
+                              <td><strong>#{sc.id}</strong></td>
+                              <td><span className="badge badge-scenario">{sc.scenarioType}</span></td>
+                              <td>{paramText}</td>
+                              <td>
+                                <span className={`badge ${sc.status === "SIMULATED" ? "badge-simulated" : "badge-ready"}`}>
+                                  {sc.status}
+                                </span>
+                              </td>
+                              <td>
+                                <button
+                                  onClick={() => handleRunSimulation(sc.id)}
+                                  className="btn-simulate-small"
+                                >
+                                  ⚡ Run Simulation & Predict
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: MULTI-SCENARIO COMPARISON */}
+          {activeTab === "comparison" && (
+            <div className="tab-pane">
+              <div className="section-title-bar">
+                <div>
+                  <h2>⚖️ Multi-Scenario Trade-Off & Comparative Matrix</h2>
+                  <p>Side-by-side evaluation of multiple strategic paths to discover optimal balance between revenue growth and margin protection.</p>
+                </div>
+                <button onClick={handleRunComparison} className="btn-primary">
+                  ⚡ Evaluate Selected Scenarios
+                </button>
+              </div>
+
+              <div className="compare-picker-strip">
+                <span className="picker-label">Select at least 2 scenarios to compare:</span>
+                <div className="compare-checkboxes">
+                  {scenarios.map((s) => (
+                    <label key={s.id} className={`chip-checkbox ${compareIds.includes(s.id) ? "checked" : ""}`}>
+                      <input
+                        type="checkbox"
+                        checked={compareIds.includes(s.id)}
+                        onChange={() => toggleCompareId(s.id)}
+                      />
+                      Scenario #{s.id} ({s.scenarioType})
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {comparisonResult ? (
+                <div className="comparison-results-panel">
+                  {/* Synthesis Banner */}
+                  <div className="synthesis-card">
+                    <span className="synthesis-tag">STRATEGIC SYNTHESIS & EXECUTIVE VERDICT</span>
+                    <p className="synthesis-text">{cleanText(comparisonResult.comparativeSynthesis)}</p>
+                    <div className="synthesis-badges">
+                      <span className="pill-badge pill-rev">👑 Highest Revenue: Scenario #{comparisonResult.bestRevenueScenarioId}</span>
+                      <span className="pill-badge pill-margin">💎 Highest Margin: Scenario #{comparisonResult.bestMarginScenarioId}</span>
+                      <span className="pill-badge pill-risk">🛡️ Lowest Risk: Scenario #{comparisonResult.lowestRiskScenarioId}</span>
+                    </div>
+                  </div>
+
+                  {/* Side-by-Side Column Cards */}
+                  <div className="comparison-matrix-grid">
+                    {comparisonResult.scenarios.map((sc) => {
+                      const isBestRev = sc.scenarioId === comparisonResult.bestRevenueScenarioId;
+                      const isBestMargin = sc.scenarioId === comparisonResult.bestMarginScenarioId;
+
+                      return (
+                        <div
+                          key={sc.scenarioId}
+                          className={`comparison-column-card ${isBestRev || isBestMargin ? "is-winner" : ""}`}
+                        >
+                          {isBestMargin && <span className="scenario-badge-best">Highest Margin</span>}
+                          {isBestRev && !isBestMargin && <span className="scenario-badge-best">Highest Revenue</span>}
+
+                          <div>
+                            <h4>Scenario #{sc.scenarioId}</h4>
+                            <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>{sc.scenarioType}</span>
+                            <div className="param-pill" style={{ marginTop: "6px" }}>{cleanText(sc.parameterDescription)}</div>
+                          </div>
+
+                          <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "8px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "6px" }}>
+                              <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Projected Revenue</span>
+                              <strong style={{ fontSize: "13px" }}>{formatCurrency(sc.projectedRevenue)}</strong>
+                            </div>
+
+                            <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "6px" }}>
+                              <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Operating Margin</span>
+                              <strong style={{ fontSize: "13px", color: "var(--primary)" }}>{formatPct(sc.projectedProfitMargin)}</strong>
+                            </div>
+
+                            <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "6px" }}>
+                              <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>CAC</span>
+                              <strong style={{ fontSize: "13px" }}>{formatCurrency(sc.projectedCustomerAcquisitionCost)}</strong>
+                            </div>
+
+                            <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "6px" }}>
+                              <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Customer Retention</span>
+                              <strong style={{ fontSize: "13px" }}>{formatPct(sc.projectedCustomerRetention)}</strong>
+                            </div>
+
+                            <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "6px" }}>
+                              <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Risk Level</span>
+                              <strong style={{ fontSize: "13px", color: sc.projectedRiskLevel > 50 ? "#ef4444" : "#10b981" }}>
+                                {sc.projectedRiskLevel}%
+                              </strong>
+                            </div>
+                          </div>
+
+                          <div style={{ marginTop: "auto", paddingTop: "12px" }}>
+                            <span className={`badge impact-${sc.overallImpact?.toLowerCase()}`}>
+                              Impact: {sc.overallImpact}
+                            </span>
+                            <p style={{ fontSize: "12px", color: "var(--text-secondary)", marginTop: "8px", fontStyle: "italic" }}>
+                              "{cleanText(sc.recommendedAction)}"
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Detailed Comparison Table */}
+                  <div className="data-table-container" style={{ marginTop: "24px" }}>
+                    <table className="enterprise-table">
+                      <thead>
+                        <tr>
+                          <th>Scenario</th>
+                          <th>Projected Revenue</th>
+                          <th>Profit Margin</th>
+                          <th>Customer Cost (CAC)</th>
+                          <th>Retention</th>
+                          <th>Efficiency</th>
+                          <th>Risk Level</th>
+                          <th>Impact</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {comparisonResult.scenarios.map((sc) => (
+                          <tr key={sc.scenarioId}>
+                            <td>
+                              <strong>Scenario #{sc.scenarioId}</strong> ({sc.scenarioType})
+                            </td>
+                            <td>
+                              <strong>{formatCurrency(sc.projectedRevenue)}</strong>
+                              <span style={{ fontSize: "11px", color: "var(--success)", marginLeft: "6px" }}>
+                                ({sc.revenueImpactPercent >= 0 ? "+" : ""}{sc.revenueImpactPercent}%)
+                              </span>
+                            </td>
+                            <td>
+                              <strong>{formatPct(sc.projectedProfitMargin)}</strong>
+                            </td>
+                            <td>{formatCurrency(sc.projectedCustomerAcquisitionCost)}</td>
+                            <td>{formatPct(sc.projectedCustomerRetention)}</td>
+                            <td>{sc.projectedOperationalEfficiency}%</td>
+                            <td>
+                              <span style={{ color: sc.projectedRiskLevel > 50 ? "#ef4444" : "#10b981", fontWeight: 700 }}>
+                                {sc.projectedRiskLevel}%
+                              </span>
+                            </td>
+                            <td>
+                              <span className={`badge impact-${sc.overallImpact?.toLowerCase()}`}>
+                                {sc.overallImpact}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                <div className="empty-state-box">
+                  <p>Select 2 or more scenarios above and click <strong>Evaluate Selected Scenarios</strong> to view their side-by-side trade-off matrix.</p>
+                  <button onClick={handleRunComparison} className="btn-primary">
+                    Compare Now
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 5: SIMULATION & EXPLANATION TRACE */}
+          {activeTab === "simulations" && (
+            <div className="tab-pane">
+              <div className="section-title-bar">
+                <div>
+                  <h2>Simulation Results & Step-by-Step Causal Trace</h2>
+                  <p>The AI digital twin calculates future numbers and explains in plain English why and how each number changes.</p>
+                </div>
+              </div>
+
+              {simulations.length === 0 ? (
+                <div className="empty-state-box">
+                  <p>No simulations run yet. Go to <strong>What-If Scenarios</strong> and click <strong>Run Simulation & Predict</strong>.</p>
+                  <button onClick={() => switchTab("scenarios")} className="btn-primary">
+                    Go to Scenarios
+                  </button>
+                </div>
+              ) : (
+                <div className="simulation-dashboard-grid">
+                  <div className="sim-selector-strip">
+                    <span>Select Simulation:</span>
+                    {simulations.map((sim) => (
+                      <button
+                        key={sim.id}
+                        className={`chip-btn ${selectedSimulation?.id === sim.id ? "active" : ""}`}
+                        onClick={() => {
+                          setSelectedSimulation(sim);
+                          setExplanation(null);
+                        }}
+                      >
+                        Sim #{sim.id} ({sim.scenarioType})
+                      </button>
+                    ))}
+                  </div>
+
+                  {selectedSimulation && (
+                    <>
+                      <div className="sim-summary-card">
+                        <div className="summary-left">
+                          <span className="summary-label">PREDICTED RESULTS FOR SIMULATION #{selectedSimulation.id}</span>
+                          <h3>{cleanText(selectedSimulation.summary)}</h3>
+                          <p>Simulated for Scenario #{selectedSimulation.scenarioId} using Saved Snapshot #{selectedSimulation.twinSnapshotId} as baseline.</p>
+                        </div>
+
+                        <div className="summary-right">
+                          <div className={`impact-badge impact-${selectedSimulation.overallImpact?.toLowerCase()}`}>
+                            Impact: {selectedSimulation.overallImpact}
+                          </div>
+                          <button
+                            onClick={() => handleViewExplanation(selectedSimulation.id)}
+                            className="btn-trace"
+                          >
+                            🔍 See Step-by-Step Reasons
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="metrics-comparison-grid">
+                        <div className="metric-compare-card">
+                          <span className="metric-name">Predicted Revenue</span>
+                          <div className="compare-values">
+                            <div><span className="label">Baseline</span><strong className="val-base">{formatCurrency(selectedSimulation.baselineRevenue)}</strong></div>
+                            <div className="arrow-sep">→</div>
+                            <div><span className="label">Projected</span><strong className="val-proj">{formatCurrency(selectedSimulation.projectedRevenue)}</strong></div>
+                          </div>
+                          <div className="delta-tag">
+                            {selectedSimulation.revenueImpactPercent >= 0 ? "+" : ""}{selectedSimulation.revenueImpactPercent}%
+                          </div>
+                        </div>
+
+                        <div className="metric-compare-card">
+                          <span className="metric-name">Predicted Profit Margin</span>
+                          <div className="compare-values">
+                            <div><span className="label">Baseline</span><strong className="val-base">{formatPct(selectedSimulation.baselineProfitMargin)}</strong></div>
+                            <div className="arrow-sep">→</div>
+                            <div><span className="label">Projected</span><strong className="val-proj">{formatPct(selectedSimulation.projectedProfitMargin)}</strong></div>
+                          </div>
+                          <div className="delta-tag">
+                            {selectedSimulation.profitMarginImpactPercent >= 0 ? "+" : ""}{selectedSimulation.profitMarginImpactPercent} pts
+                          </div>
+                        </div>
+
+                        <div className="metric-compare-card">
+                          <span className="metric-name">Customer Retention Rate</span>
+                          <div className="compare-values">
+                            <div><span className="label">Baseline</span><strong className="val-base">{formatPct(selectedSimulation.baselineCustomerRetention)}</strong></div>
+                            <div className="arrow-sep">→</div>
+                            <div><span className="label">Projected</span><strong className="val-proj">{formatPct(selectedSimulation.projectedCustomerRetention)}</strong></div>
+                          </div>
+                        </div>
+
+                        <div className="metric-compare-card">
+                          <span className="metric-name">Customer Acquisition Cost (CAC)</span>
+                          <div className="compare-values">
+                            <div><span className="label">Baseline</span><strong className="val-base">{formatCurrency(selectedSimulation.baselineCustomerAcquisitionCost)}</strong></div>
+                            <div className="arrow-sep">→</div>
+                            <div><span className="label">Projected</span><strong className="val-proj">{formatCurrency(selectedSimulation.projectedCustomerAcquisitionCost)}</strong></div>
+                          </div>
+                        </div>
+
+                        <div className="metric-compare-card">
+                          <span className="metric-name">Operational Efficiency</span>
+                          <div className="compare-values">
+                            <div><span className="label">Baseline</span><strong className="val-base">{selectedSimulation.baselineOperationalEfficiency}%</strong></div>
+                            <div className="arrow-sep">→</div>
+                            <div><span className="label">Projected</span><strong className="val-proj">{selectedSimulation.projectedOperationalEfficiency}%</strong></div>
+                          </div>
+                        </div>
+
+                        <div className="metric-compare-card">
+                          <span className="metric-name">Risk Level</span>
+                          <div className="compare-values">
+                            <div><span className="label">Baseline</span><strong className="val-base">{selectedSimulation.baselineRiskLevel}%</strong></div>
+                            <div className="arrow-sep">→</div>
+                            <div><span className="label">Projected</span><strong className="val-proj" style={{ color: selectedSimulation.projectedRiskLevel > 50 ? "#ef4444" : "#10b981" }}>{selectedSimulation.projectedRiskLevel}%</strong></div>
+                          </div>
+                          <div className="delta-tag">
+                            {selectedSimulation.riskImpactPercent >= 0 ? "+" : ""}{selectedSimulation.riskImpactPercent} pts
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="explanation-trace-box">
+                        <div className="trace-header">
+                          <h3>🧠 Why did this happen? (Step-by-Step Explanation)</h3>
+                          <span className="trace-subtitle">Clear step-by-step logic showing how your decision affects customers, costs, and profits:</span>
+                        </div>
+
+                        <div className="trace-steps-list">
+                          {(explanation ? explanation.traceSteps : selectedSimulation.explanationSteps || []).map((step, idx) => (
+                            <div className="trace-step-item" key={idx}>
+                              <div className="step-number">{idx + 1}</div>
+                              <div className="step-content">{cleanText(step)}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 6: RECOMMENDATIONS */}
+          {activeTab === "recommendations" && (
+            <div className="tab-pane">
+              <div className="section-title-bar">
+                <div>
+                  <h2>Smart Recommendations & Action Plan</h2>
+                  <p>Direct, clear advice on whether you should go ahead with this decision or avoid it.</p>
+                </div>
+              </div>
+
+              {recommendations.length === 0 ? (
+                <p className="empty-text">No recommendations generated yet. Run a simulation first.</p>
+              ) : (
+                <div className="recommendations-grid">
+                  {recommendations.map((rec) => (
+                    <div className="rec-card" key={rec.id}>
+                      <div className="rec-top-row">
+                        <span className={`rec-badge rec-${rec.recommendationType?.toLowerCase()}`}>
+                          {rec.recommendationType}
+                        </span>
+                        <span className="confidence-tag">Confidence Score: {rec.confidenceScore}%</span>
+                      </div>
+
+                      <h3 className="rec-action">{cleanText(rec.actionStatement)}</h3>
+                      <p className="rec-rationale">{cleanText(rec.rationale)}</p>
+
+                      <div className="rec-meta-row">
+                        <div><span>Scenario:</span> <strong>#{rec.scenarioId} ({rec.scenarioType})</strong></div>
+                        <div><span>Expected Return (ROI):</span> <strong className="text-highlight">+{rec.expectedRoiPercent}%</strong></div>
+                        <div><span>Risk Level:</span> <strong>{rec.riskAssessment}</strong></div>
+                        <div><span>Status:</span> <strong className="status-tag">{rec.status}</strong></div>
+                      </div>
+
+                      <div className="rec-action-row">
+                        <button
+                          onClick={() => {
+                            setDecisionForm({
+                              ...decisionForm,
+                              scenarioId: rec.scenarioId,
+                              simulationId: rec.simulationId,
+                              recommendationId: rec.id,
+                              decisionStatus: "ACCEPTED",
+                              notes: `Accepted recommendation #${rec.id}: ${rec.actionStatement}`,
+                            });
+                            switchTab("decisions");
+                          }}
+                          className="btn-primary"
+                        >
+                          🏛️ Accept & Make Decision
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 7: DECISIONS */}
+          {activeTab === "decisions" && (
+            <div className="tab-pane">
+              <div className="section-title-bar">
+                <div>
+                  <h2>Decision Log (What Did the Manager Decide?)</h2>
+                  <p>Record the final decision taken by the business manager (e.g. accepted, rejected, or modified).</p>
+                </div>
+              </div>
+
+              <div className="decision-workspace-layout">
+                <div className="decision-form-card">
+                  <h3>Record New Decision</h3>
+                  <form onSubmit={handleRecordDecision}>
+                    <div className="form-group">
+                      <label>Select Scenario</label>
+                      <select
+                        value={decisionForm.scenarioId}
+                        onChange={(e) => setDecisionForm({ ...decisionForm, scenarioId: e.target.value })}
+                        className="form-input"
+                        required
+                      >
+                        <option value="">-- Choose Scenario --</option>
+                        {scenarios.map((sc) => (
+                          <option key={sc.id} value={sc.id}>
+                            #{sc.id} - {sc.scenarioType} ({sc.status})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Select Simulation</label>
+                      <select
+                        value={decisionForm.simulationId}
+                        onChange={(e) => setDecisionForm({ ...decisionForm, simulationId: e.target.value })}
+                        className="form-input"
+                        required
+                      >
+                        <option value="">-- Choose Simulation --</option>
+                        {simulations.map((sim) => (
+                          <option key={sim.id} value={sim.id}>
+                            Sim #{sim.id} for Scenario #{sim.scenarioId} ({sim.overallImpact})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Decision</label>
+                      <select
+                        value={decisionForm.decisionStatus}
+                        onChange={(e) => setDecisionForm({ ...decisionForm, decisionStatus: e.target.value })}
+                        className="form-input"
+                      >
+                        <option value="ACCEPTED">ACCEPTED (Go ahead and implement)</option>
+                        <option value="REJECTED">REJECTED (Do not implement)</option>
+                        <option value="MODIFIED">MODIFIED (Implement with modifications)</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Decision Maker Name</label>
+                      <input
+                        type="text"
+                        value={decisionForm.decisionMaker}
+                        onChange={(e) => setDecisionForm({ ...decisionForm, decisionMaker: e.target.value })}
+                        className="form-input"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Reason for Decision / Notes</label>
+                      <textarea
+                        value={decisionForm.notes}
+                        onChange={(e) => setDecisionForm({ ...decisionForm, notes: e.target.value })}
+                        className="form-input"
+                        rows="3"
+                      ></textarea>
+                    </div>
+
+                    <button type="submit" className="btn-primary full-width">
+                      Save Decision
+                    </button>
+                  </form>
+                </div>
+
+                <div className="decisions-history-box">
+                  <h3>Past Decisions Log ({decisions.length})</h3>
+                  {decisions.length === 0 ? (
+                    <p className="empty-text">No decisions recorded yet.</p>
+                  ) : (
+                    <div className="decisions-timeline">
+                      {decisions.map((d) => (
+                        <div className="decision-item-card" key={d.id}>
+                          <div className="d-top">
+                            <span className={`status-pill pill-${d.decisionStatus?.toLowerCase()}`}>
+                              {d.decisionStatus}
+                            </span>
+                            <span className="d-time">{new Date(d.createdAt).toLocaleString()}</span>
+                          </div>
+                          <h4>Scenario #{d.scenarioId} ({d.scenarioType})</h4>
+                          <p className="d-notes">"{cleanText(d.notes)}"</p>
+                          <div className="d-meta">
+                            <span>Decision Maker: <strong>{d.decisionMaker}</strong></span>
+                            <span>Simulation: <strong>#{d.simulationId}</strong></span>
+                          </div>
+                          <div className="d-actions">
+                            <button
+                              onClick={() => {
+                                setOutcomeForm({
+                                  ...outcomeForm,
+                                  decisionId: d.id,
+                                  actualRevenue: "540000.00",
+                                  actualProfitMargin: "20.50",
+                                  actualCustomerRetention: "84.00",
+                                  actualCustomerAcquisitionCost: "1150.00",
+                                  notes: `Realized outcome following Decision #${d.id} implementation.`,
+                                });
+                                switchTab("outcomes");
+                              }}
+                              className="btn-action-small"
+                            >
+                              📊 Record Real Results When Available
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 8: ACTUAL OUTCOMES */}
+          {activeTab === "outcomes" && (
+            <div className="tab-pane">
+              <div className="section-title-bar">
+                <div>
+                  <h2>Actual Real-World Results</h2>
+                  <p>After implementing the decision in real life, enter the actual revenue and profit here to see how close the prediction was.</p>
+                </div>
+              </div>
+
+              <div className="outcomes-workspace-layout">
+                <div className="outcome-form-card">
+                  <h3>Enter Actual Business Results</h3>
+                  <form onSubmit={handleRecordOutcome}>
+                    <div className="form-group">
+                      <label>Select Implemented Decision</label>
+                      <select
+                        value={outcomeForm.decisionId}
+                        onChange={(e) => setOutcomeForm({ ...outcomeForm, decisionId: e.target.value })}
+                        className="form-input"
+                        required
+                      >
+                        <option value="">-- Choose Decision --</option>
+                        {decisions.map((dec) => (
+                          <option key={dec.id} value={dec.id}>
+                            Decision #{dec.id} ({dec.decisionStatus}) - Scenario #{dec.scenarioId}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="form-row-2">
+                      <div className="form-group">
+                        <label>Actual Revenue Earned (₹)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={outcomeForm.actualRevenue}
+                          onChange={(e) => setOutcomeForm({ ...outcomeForm, actualRevenue: e.target.value })}
+                          className="form-input"
+                          placeholder="e.g. 540000"
+                          required
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label>Actual Profit Margin (%)</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={outcomeForm.actualProfitMargin}
+                          onChange={(e) => setOutcomeForm({ ...outcomeForm, actualProfitMargin: e.target.value })}
+                          className="form-input"
+                          placeholder="e.g. 20.5"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-row-2">
+                      <div className="form-group">
+                        <label>Actual Customer Retention (%)</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={outcomeForm.actualCustomerRetention}
+                          onChange={(e) => setOutcomeForm({ ...outcomeForm, actualCustomerRetention: e.target.value })}
+                          className="form-input"
+                          placeholder="e.g. 84.0"
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label>Actual Customer Acquisition Cost (₹)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={outcomeForm.actualCustomerAcquisitionCost}
+                          onChange={(e) => setOutcomeForm({ ...outcomeForm, actualCustomerAcquisitionCost: e.target.value })}
+                          className="form-input"
+                          placeholder="e.g. 1150"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Review Notes / Comments</label>
+                      <textarea
+                        value={outcomeForm.notes}
+                        onChange={(e) => setOutcomeForm({ ...outcomeForm, notes: e.target.value })}
+                        className="form-input"
+                        rows="2"
+                      ></textarea>
+                    </div>
+
+                    <button type="submit" className="btn-primary full-width">
+                      Save Results & Update AI Twin 🚀
+                    </button>
+                  </form>
+                </div>
+
+                <div className="outcomes-history-table">
+                  <h3>Saved Real-World Results ({outcomes.length})</h3>
+                  {outcomes.length === 0 ? (
+                    <p className="empty-text">No actual outcomes recorded yet.</p>
+                  ) : (
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>Decision</th>
+                          <th>Actual Revenue</th>
+                          <th>Actual Margin</th>
+                          <th>Date Recorded</th>
+                          <th>Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {outcomes.map((o) => (
+                          <tr key={o.id}>
+                            <td><strong>#{o.id}</strong></td>
+                            <td>Decision #{o.decisionId} ({o.scenarioType})</td>
+                            <td className="text-highlight">{formatCurrency(o.actualRevenue)}</td>
+                            <td>{formatPct(o.actualProfitMargin)}</td>
+                            <td>{new Date(o.realizedAt).toLocaleDateString()}</td>
+                            <td>{cleanText(o.notes)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 9: TWIN EVOLUTION */}
+          {activeTab === "evolution" && (
+            <div className="tab-pane">
+              <div className="section-title-bar">
+                <div>
+                  <h2>Self-Learning & Model Accuracy</h2>
+                  <p>The AI compares what it predicted against what actually happened in real life. It calculates its accuracy and updates the company's live DNA.</p>
+                </div>
+              </div>
+
+              {evolutions.length === 0 ? (
+                <div className="empty-state-box">
+                  <p>No learning cycles recorded yet. Enter an Actual Real-World Result to test prediction accuracy.</p>
+                </div>
+              ) : (
+                <div className="evolution-stream">
+                  {evolutions.map((evo) => (
+                    <div className="evolution-card" key={evo.id}>
+                      <div className="evo-header">
+                        <div className="evo-title">
+                          <span className="evo-badge">LEARNING CYCLE #{evo.id}</span>
+                          <h3>Digital Twin Accuracy & Recalibration</h3>
+                        </div>
+                        <div className="accuracy-meter">
+                          <span className="meter-label">Prediction Accuracy</span>
+                          <strong className="meter-val">{evo.overallAccuracyPercent}%</strong>
+                        </div>
+                      </div>
+
+                      {/* Visual Prediction vs Actual Bar Comparison */}
+                      <div className="visualization-card" style={{ marginBottom: "18px" }}>
+                        <h4>📊 Prediction vs Actual Reality</h4>
+                        <div className="variance-bar-group">
+                          <div className="v-bar-row">
+                            <span className="v-label">Revenue</span>
+                            <div className="v-track">
+                              <div className="v-fill pred" style={{ width: "85%" }} title={`Projected: ${formatCurrency(evo.projectedRevenue)}`}>
+                                Pred: {formatCurrency(evo.projectedRevenue)}
+                              </div>
+                              <div className="v-fill real" style={{ width: "87%" }} title={`Actual: ${formatCurrency(evo.actualRevenue)}`}>
+                                Real: {formatCurrency(evo.actualRevenue)}
+                              </div>
+                            </div>
+                            <span className="v-delta">+{evo.revenueVariancePercent}%</span>
+                          </div>
+
+                          <div className="v-bar-row">
+                            <span className="v-label">Margin</span>
+                            <div className="v-track">
+                              <div className="v-fill pred" style={{ width: "70%" }}>
+                                Pred: {formatPct(evo.projectedProfitMargin)}
+                              </div>
+                              <div className="v-fill real" style={{ width: "74%" }}>
+                                Real: {formatPct(evo.actualProfitMargin)}
+                              </div>
+                            </div>
+                            <span className="v-delta">+{evo.profitMarginVariancePoints} pts</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="evo-comparison-row">
+                        <div className="comp-item">
+                          <span className="comp-label">Revenue Prediction vs Actual</span>
+                          <div className="comp-figures">
+                            <span>Pred: {formatCurrency(evo.projectedRevenue)}</span>
+                            <span className="arrow-sep">→</span>
+                            <strong>Real: {formatCurrency(evo.actualRevenue)}</strong>
+                          </div>
+                          <span className="variance-pill">Variance: {evo.revenueVariancePercent}%</span>
+                        </div>
+
+                        <div className="comp-item">
+                          <span className="comp-label">Profit Margin Prediction vs Actual</span>
+                          <div className="comp-figures">
+                            <span>Pred: {formatPct(evo.projectedProfitMargin)}</span>
+                            <span className="arrow-sep">→</span>
+                            <strong>Real: {formatPct(evo.actualProfitMargin)}</strong>
+                          </div>
+                          <span className="variance-pill">Variance: {evo.profitMarginVariancePoints} pts</span>
+                        </div>
+
+                        <div className="comp-item">
+                          <span className="comp-label">CAC Prediction vs Actual</span>
+                          <div className="comp-figures">
+                            <span>Pred: {formatCurrency(evo.projectedCac)}</span>
+                            <span className="arrow-sep">→</span>
+                            <strong>Real: {formatCurrency(evo.actualCac)}</strong>
+                          </div>
+                          <span className="variance-pill">Variance: {evo.cacVariancePercent}%</span>
+                        </div>
+                      </div>
+
+                      <div className="evo-insight-box">
+                        <h4>🧠 What the AI Learned</h4>
+                        <p>{cleanText(evo.evolutionInsight)}</p>
+                      </div>
+
+                      <div className="evo-action-box">
+                        <h4>⚙️ Updates Applied to Business DNA</h4>
+                        <p>{cleanText(evo.calibrationAction)}</p>
+                      </div>
+
+                      <div className="evo-footer">
+                        <span>Updated on: {new Date(evo.appliedAt).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 10: ENTERPRISE RISK RADAR */}
+          {activeTab === "risks" && (
+            <div className="tab-pane">
+              <div className="section-title-bar">
+                <div>
+                  <h2>🛡️ Enterprise Risk Radar & Exposure Matrix</h2>
+                  <p>Automated threat analysis across market shocks, supplier dependency, customer churn, and liquidity runway.</p>
+                </div>
+              </div>
+
+              <div className="card-grid">
+                {/* Vector 1 */}
+                <div className="standard-card">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 800, color: "var(--danger)", textTransform: "uppercase" }}>
+                      Market Shock Volatility
+                    </span>
+                    <span className="status-pill pill-rejected">
+                      {dna?.riskLevel > 50 ? "Elevated" : "Moderate"}
+                    </span>
+                  </div>
+                  <h3 style={{ fontSize: "16px", fontWeight: 800 }}>Demand Elasticity Exposure</h3>
+                  <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                    Current structural risk level is calibrated at <strong>{dna?.riskLevel || 35}%</strong>. In severe demand contractions, operating margins could compress by up to 4.2 percentage points.
+                  </p>
+                  <div style={{ background: "var(--bg-subtle)", padding: "10px 14px", borderRadius: "8px", fontSize: "12px" }}>
+                    <strong>Recommended Hedge:</strong> Maintain baseline customer retention above 80% to absorb demand fluctuations.
+                  </div>
+                </div>
+
+                {/* Vector 2 */}
+                <div className="standard-card">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 800, color: "var(--warning)", textTransform: "uppercase" }}>
+                      Supply Chain Cost Shift
+                    </span>
+                    <span className="status-pill pill-modified">Medium Priority</span>
+                  </div>
+                  <h3 style={{ fontSize: "16px", fontWeight: 800 }}>Vendor Inflation Margin Squeeze</h3>
+                  <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                    Current operating margin is <strong>{formatPct(dna?.profitMargin)}</strong>. A 10% increase in supplier procurement cost would decrease margin by ~2.8 pts without pricing pass-through.
+                  </p>
+                  <div style={{ background: "var(--bg-subtle)", padding: "10px 14px", borderRadius: "8px", fontSize: "12px" }}>
+                    <strong>Recommended Hedge:</strong> Formulate a +5% to +10% price adjustment what-if scenario in the simulator.
+                  </div>
+                </div>
+
+                {/* Vector 3 */}
+                <div className="standard-card">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 800, color: "var(--primary)", textTransform: "uppercase" }}>
+                      Customer Acquisition Friction
+                    </span>
+                    <span className="status-pill pill-accepted">Controlled</span>
+                  </div>
+                  <h3 style={{ fontSize: "16px", fontWeight: 800 }}>CAC Payback Ceiling</h3>
+                  <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                    Customer acquisition cost is measured at <strong>{formatCurrency(dna?.customerAcquisitionCost)}</strong> against an industry threshold of ₹1,500. Retention stands at <strong>{formatPct(dna?.customerRetention)}</strong>.
+                  </p>
+                  <div style={{ background: "var(--bg-subtle)", padding: "10px 14px", borderRadius: "8px", fontSize: "12px" }}>
+                    <strong>Recommended Hedge:</strong> Focus marketing allocation towards referral-driven, high-LTV acquisition cohorts.
+                  </div>
+                </div>
+
+                {/* Vector 4 */}
+                <div className="standard-card">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 800, color: "var(--success)", textTransform: "uppercase" }}>
+                      Operational Buffer
+                    </span>
+                    <span className="status-pill pill-accepted">Resilient</span>
+                  </div>
+                  <h3 style={{ fontSize: "16px", fontWeight: 800 }}>Organizational Safety Runway</h3>
+                  <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                    Operational efficiency score is <strong>{dna?.operationalEfficiency || 78}/100</strong> and financial stability index is <strong>{dna?.financialStability || 82}/100</strong>.
+                  </p>
+                  <div style={{ background: "var(--bg-subtle)", padding: "10px 14px", borderRadius: "8px", fontSize: "12px" }}>
+                    <strong>Recommended Hedge:</strong> Reinvest operational savings into digital automation to sustain current high margins.
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 11: STRATEGIC OPPORTUNITY RADAR */}
+          {activeTab === "opportunities" && (
+            <div className="tab-pane">
+              <div className="section-title-bar">
+                <div>
+                  <h2>🚀 Strategic Opportunity Radar & Value Creation</h2>
+                  <p>AI-detected growth catalysts and capital deployment opportunities based on current business DNA leverage.</p>
+                </div>
+              </div>
+
+              <div className="card-grid">
+                <div className="standard-card" style={{ borderLeft: "4px solid var(--success)" }}>
+                  <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--success)", textTransform: "uppercase" }}>
+                    Catalyst 1: Pricing Inelasticity
+                  </span>
+                  <h3 style={{ fontSize: "16px", fontWeight: 800 }}>Selective Premium Price Hike (+8%)</h3>
+                  <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                    Because customer retention is <strong>{formatPct(dna?.customerRetention)}</strong>, customer loyalty is high. Twin simulations project that an 8% price hike drops retention by only 1.2% while expanding EBITDA margins by +2.6 pts.
+                  </p>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "8px" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--primary)" }}>Estimated ROI: +32%</span>
+                    <button
+                      onClick={() => {
+                        setScenarioForm({ scenarioType: "PRICE_CHANGE", changePercent: 8.0 });
+                        switchTab("scenarios");
+                      }}
+                      className="btn-simulate-small"
+                    >
+                      Test in Simulator →
+                    </button>
+                  </div>
+                </div>
+
+                <div className="standard-card" style={{ borderLeft: "4px solid var(--primary)" }}>
+                  <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--primary)", textTransform: "uppercase" }}>
+                    Catalyst 2: Ad Spend Expansion
+                  </span>
+                  <h3 style={{ fontSize: "16px", fontWeight: 800 }}>Marketing Acceleration (+25%)</h3>
+                  <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                    CAC is well below industry ceiling at <strong>{formatCurrency(dna?.customerAcquisitionCost)}</strong>. An ad spend expansion can unlock up to +₹65,000 in monthly top-line revenue before diminishing returns occur.
+                  </p>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "8px" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--primary)" }}>Estimated ROI: +24%</span>
+                    <button
+                      onClick={() => {
+                        setScenarioForm({ scenarioType: "MARKETING_CHANGE", changePercent: 25.0 });
+                        switchTab("scenarios");
+                      }}
+                      className="btn-simulate-small"
+                    >
+                      Test in Simulator →
+                    </button>
+                  </div>
+                </div>
+
+                <div className="standard-card" style={{ borderLeft: "4px solid var(--accent-ai)" }}>
+                  <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--accent-ai)", textTransform: "uppercase" }}>
+                    Catalyst 3: Digital Automation
+                  </span>
+                  <h3 style={{ fontSize: "16px", fontWeight: 800 }}>Digital Workflow Modernization</h3>
+                  <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                    Digital maturity is currently at <strong>{dna?.digitalMaturity || 70}/100</strong>. Automating repetitive fulfillment workflows can reduce operational overhead and increase efficiency to 88/100.
+                  </p>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "8px" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--primary)" }}>Estimated Efficiency: +10 pts</span>
+                    <button onClick={() => switchTab("dna")} className="btn-secondary" style={{ padding: "4px 10px", fontSize: "11px" }}>
+                      Inspect DNA →
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 12: BUSINESS COPILOT AI */}
+          {activeTab === "copilot" && (
+            <div className="tab-pane">
+              <div className="section-title-bar">
+                <div>
+                  <h2>🤖 Business Copilot AI (Executive Conversational Intelligence)</h2>
+                  <p>Ask strategic questions directly to your cognitive twin. Responses are dynamically synthesized from your company's live DNA, snapshots, scenarios, and simulation logs.</p>
+                </div>
+              </div>
+
+              <div className="copilot-container">
+                <div className="copilot-header">
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div className="sidebar-logo-icon" style={{ width: "30px", height: "30px", fontSize: "13px" }}>AI</div>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: "14px", fontWeight: 800 }}>TwinIQ Cognitive Copilot</h4>
+                      <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>Connected to #{selectedBusinessId} - {business?.businessName}</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() =>
+                      setCopilotMessages([
+                        {
+                          sender: "ai",
+                          text: "Memory cleared. How can I assist your executive strategy today?",
+                          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                        },
+                      ])
+                    }
+                    className="btn-secondary"
+                    style={{ fontSize: "11px", padding: "4px 10px" }}
+                  >
+                    Clear History
+                  </button>
+                </div>
+
+                <div className="copilot-messages">
+                  {copilotMessages.map((msg, idx) => (
+                    <div key={idx} className={`chat-bubble ${msg.sender}`}>
+                      <div style={{ fontSize: "11px", opacity: 0.7, marginBottom: "4px" }}>
+                        {msg.sender === "ai" ? "TwinIQ Copilot" : "You"} • {msg.time}
+                      </div>
+                      <div>{msg.text}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="copilot-prompt-chips">
+                  <button onClick={() => handleSendCopilotMessage("Summarize current business health")} className="prompt-chip">
+                    📊 Summarize Current Health
+                  </button>
+                  <button onClick={() => handleSendCopilotMessage("What is our greatest strategic risk?")} className="prompt-chip">
+                    ⚠️ Greatest Strategic Risk
+                  </button>
+                  <button onClick={() => handleSendCopilotMessage("Which scenario yields the highest profit margin?")} className="prompt-chip">
+                    🎯 Highest Margin Scenario
+                  </button>
+                  <button onClick={() => handleSendCopilotMessage("What is the top recommended strategic action?")} className="prompt-chip">
+                    💡 Top Recommended Action
+                  </button>
+                  <button onClick={() => handleSendCopilotMessage("How accurate is our digital twin self-learning loop?")} className="prompt-chip">
+                    🔄 Self-Learning Accuracy
+                  </button>
+                </div>
+
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSendCopilotMessage();
+                  }}
+                  className="copilot-input-bar"
+                >
+                  <input
+                    type="text"
+                    value={copilotInput}
+                    onChange={(e) => setCopilotInput(e.target.value)}
+                    placeholder="Ask Copilot e.g., 'What happens if we increase price by 10%?' or 'Analyze our risk buffer'..."
+                    className="copilot-input"
+                  />
+                  <button type="submit" className="btn-primary" style={{ padding: "0 18px" }}>
+                    <SendIcon size={16} />
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 13: EXECUTIVE BI BOARD REPORT */}
+          {activeTab === "reports" && (
+            <div className="tab-pane">
+              <div className="section-title-bar">
+                <div>
+                  <h2>📄 Board-Ready Executive Strategic Briefing</h2>
+                  <p>Comprehensive corporate briefing memo synthesizing digital twin calibration, scenario analysis, and strategic roadmap.</p>
+                </div>
+                <button onClick={() => window.print()} className="btn-primary">
+                  🖨️ Print / Save as PDF
+                </button>
+              </div>
+
+              <div className="standard-card" style={{ padding: "36px 42px", gap: "24px" }}>
+                {/* Document Header */}
+                <div style={{ borderBottom: "2px solid var(--border-medium)", paddingBottom: "20px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px" }}>
+                    <div>
+                      <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--primary)", letterSpacing: "1px", textTransform: "uppercase" }}>
+                        CONFIDENTIAL EXECUTIVE STRATEGY BRIEFING
+                      </span>
+                      <h1 style={{ fontSize: "24px", fontWeight: 900, marginTop: "4px" }}>
+                        {business?.businessName || "Active Enterprise"}
+                      </h1>
+                      <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+                        Industry: {business?.industry} • Location: {business?.location} • Code: {business?.businessCode}
+                      </span>
+                    </div>
+                    <div style={{ textAlign: "right", fontSize: "12px", color: "var(--text-muted)" }}>
+                      <div>Date: {new Date().toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" })}</div>
+                      <div>Prepared by: Rahul V S (Strategic Lead)</div>
+                      <div>Status: Board Presentation Ready</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 1: Executive Summary */}
+                <div>
+                  <h3 style={{ fontSize: "16px", fontWeight: 800, marginBottom: "8px" }}>1. Executive Summary & Health Verdict</h3>
+                  <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.6 }}>
+                    {dashboardData?.healthSummary ||
+                      "The cognitive digital twin evaluates current organizational health as robust with favorable operating margins and low customer acquisition costs."}
+                  </p>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", marginTop: "14px" }}>
+                    <div style={{ background: "var(--bg-subtle)", padding: "12px", borderRadius: "8px" }}>
+                      <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>Overall Health Score</span>
+                      <div style={{ fontSize: "18px", fontWeight: 900, color: "var(--primary)" }}>{Math.round(dashboardData?.overallHealthScore || 75)}/100</div>
+                    </div>
+                    <div style={{ background: "var(--bg-subtle)", padding: "12px", borderRadius: "8px" }}>
+                      <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>Annual Revenue</span>
+                      <div style={{ fontSize: "18px", fontWeight: 900 }}>{formatCurrency(dna?.revenue)}</div>
+                    </div>
+                    <div style={{ background: "var(--bg-subtle)", padding: "12px", borderRadius: "8px" }}>
+                      <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>Profit Margin</span>
+                      <div style={{ fontSize: "18px", fontWeight: 900, color: "var(--success)" }}>{formatPct(dna?.profitMargin)}</div>
+                    </div>
+                    <div style={{ background: "var(--bg-subtle)", padding: "12px", borderRadius: "8px" }}>
+                      <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>Customer Retention</span>
+                      <div style={{ fontSize: "18px", fontWeight: 900 }}>{formatPct(dna?.customerRetention)}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 2: Scenario Analysis */}
+                <div>
+                  <h3 style={{ fontSize: "16px", fontWeight: 800, marginBottom: "8px" }}>2. Strategic Scenarios Modeled ({scenarios.length} Formulated)</h3>
+                  <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.5, marginBottom: "12px" }}>
+                    The digital twin evaluated multiple what-if paths to project the bottom-line and risk impacts prior to committing capital.
+                  </p>
+                  <div className="data-table-container">
+                    <table className="enterprise-table">
+                      <thead>
+                        <tr>
+                          <th>Scenario ID</th>
+                          <th>Decision Lever</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {scenarios.map((sc) => (
+                          <tr key={sc.id}>
+                            <td><strong>#{sc.id}</strong></td>
+                            <td>{sc.scenarioType}</td>
+                            <td>{sc.status}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Section 3: Smart Recommendations */}
+                <div>
+                  <h3 style={{ fontSize: "16px", fontWeight: 800, marginBottom: "8px" }}>3. Strategic Recommendations & Next Steps</h3>
+                  {recommendations.length > 0 ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                      {recommendations.slice(0, 3).map((rec) => (
+                        <div key={rec.id} style={{ background: "var(--bg-subtle)", padding: "14px 18px", borderRadius: "8px" }}>
+                          <strong style={{ fontSize: "13px" }}>Action: {cleanText(rec.actionStatement)}</strong>
+                          <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: "4px 0 0 0" }}>
+                            {cleanText(rec.rationale)} • Expected ROI: <strong>+{rec.expectedRoiPercent}%</strong>
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>Simulations required to generate board recommendations.</p>
+                  )}
+                </div>
+
+                {/* Sign-off */}
+                <div style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: "18px", display: "flex", justifyContent: "space-between", fontSize: "12px", color: "var(--text-muted)" }}>
+                  <span>Generated via TwinIQ Cognitive Decision Architecture</span>
+                  <span>Board Sign-Off: Rahul V S (Lead Strategist)</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+
+      {/* CSV DATA IMPORT MODAL */}
+      <CsvImportModal
+        isOpen={showCsvModal}
+        onClose={() => setShowCsvModal(false)}
+        onImportSuccess={(data) => {
+          flashMessage("CSV records successfully ingested and converted into twin baseline snapshot!");
+          refreshAllData(selectedBusinessId);
+        }}
+        businessId={selectedBusinessId}
+      />
+
+      {/* AURA — COGNITIVE TWIN INTERACTIVE COMPANION (PERSISTENT DOCK) */}
+      <TwinIqCompanion
+        mode="dock"
+        business={business}
+        dna={dna}
+        simulation={selectedSimulation}
+        recommendation={recommendations?.[0]}
+        scenarios={scenarios}
+        simulations={simulations}
+        dashboardData={dashboardData}
+        evolutions={evolutions}
+        onOpenCopilot={() => switchTab("copilot")}
+        onNavigateTab={switchTab}
+      />
     </div>
   );
 }

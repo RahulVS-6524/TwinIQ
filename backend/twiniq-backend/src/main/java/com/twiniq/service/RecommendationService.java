@@ -68,7 +68,7 @@ public class RecommendationService {
             if (revImpact.compareTo(BigDecimal.ZERO) > 0 && riskLevel.compareTo(BigDecimal.valueOf(45)) <= 0) {
                 recType = "PROCEED";
                 actionStatement = "Increase marketing investment by " + spendChange + "% because the projected revenue improvement (" + revImpact + "%) outweighs the acquisition overhead.";
-                rationale = "Customer acquisition velocity accelerates while CAC stabilizes at $" + simulation.getProjectedCustomerAcquisitionCost() + ". Revenue increases to $" + simulation.getProjectedRevenue() + " while keeping organizational risk at manageable levels (" + riskLevel + "%).";
+                rationale = "Customer acquisition velocity accelerates while CAC stabilizes at ₹" + simulation.getProjectedCustomerAcquisitionCost() + ". Revenue increases to ₹" + simulation.getProjectedRevenue() + " while keeping organizational risk at manageable levels (" + riskLevel + "%).";
                 expectedRoi = revImpact.multiply(BigDecimal.valueOf(1.8)).setScale(2, RoundingMode.HALF_UP);
                 riskAssessment = "LOW";
                 confidenceScore = BigDecimal.valueOf(88.50);

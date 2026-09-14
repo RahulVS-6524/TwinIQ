@@ -1,0 +1,84 @@
+# ==============================================================================
+# TwinIQ Platform - Unified Production Docker Compose
+# Orchestrates PostgreSQL 16 + Spring Boot Backend + React Frontend (Nginx)
+# ==============================================================================
+
+version: '3.8'
+
+services:
+  # --- 1. PostgreSQL 16 Database ---
+  db:
+    image: postgres:16-alpine
+    container_name: twiniq-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-twiniq}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - twiniq_pgdata:/var/lib/postgresql/data
+      - ./backend/twiniq-backend/src/main/resources/db/migration/V1__initial_schema.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-twiniq}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - twiniq-network
+
+  # --- 2. Spring Boot Decision Intelligence Backend ---
+  backend:
+    build:
+      context: ./backend/twiniq-backend
+      dockerfile: Dockerfile
+    container_name: twiniq-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 8081
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-twiniq}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      JWT_SECRET: ${JWT_SECRET:-TwinIQ2026SuperSecureSecretKeyForCognitiveBusinessTwinPlatformMustBe256BitsLong!}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost,http://localhost:80,http://localhost:5173,http://localhost:3000,http://127.0.0.1}
+      SHOW_SQL: "false"
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    networks:
+      - twiniq-network
+
+  # --- 3. React SPA Frontend (Served via Nginx with API Proxy) ---
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: twiniq-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    networks:
+      - twiniq-network
+
+volumes:
+  twiniq_pgdata:
+    name: twiniq_pgdata
+
+networks:
+  twiniq-network:
+    name: twiniq-network
+    driver: bridge

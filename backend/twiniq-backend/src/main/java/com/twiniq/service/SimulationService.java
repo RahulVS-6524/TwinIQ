@@ -62,7 +62,7 @@ public class SimulationService {
         BigDecimal projRisk = baseRisk;
 
         List<String> traceSteps = new ArrayList<>();
-        traceSteps.add("1. Baseline Loaded: Revenue = $" + baseRevenue + ", Margin = " + baseMargin + "%, Retention = " + baseRetention + "%, CAC = $" + baseCac + ", Efficiency = " + baseEfficiency + "%, Risk = " + baseRisk + "%.");
+        traceSteps.add("1. Baseline Loaded: Revenue = ₹" + baseRevenue + ", Margin = " + baseMargin + "%, Retention = " + baseRetention + "%, CAC = ₹" + baseCac + ", Efficiency = " + baseEfficiency + "%, Risk = " + baseRisk + "%.");
 
         String summary = "";
 
@@ -90,12 +90,12 @@ public class SimulationService {
 
                 projEfficiency = clamp(baseEfficiency.add(BigDecimal.valueOf(-1.0 * changeFactor * 5)), 0, 100);
 
-                traceSteps.add("3. Acquisition Dynamics: Increased marketing spend improves customer acquisition velocity and brand reach, shifting CAC to $" + projCac + ".");
-                traceSteps.add("4. Revenue Growth: Enhanced acquisition pipeline expands customer base, projecting revenue to $" + projRevenue + " (" + formatPct(baseRevenue, projRevenue) + "%).");
+                traceSteps.add("3. Acquisition Dynamics: Increased marketing spend improves customer acquisition velocity and brand reach, shifting CAC to ₹" + projCac + ".");
+                traceSteps.add("4. Revenue Growth: Enhanced acquisition pipeline expands customer base, projecting revenue to ₹" + projRevenue + " (" + formatPct(baseRevenue, projRevenue) + "%).");
                 traceSteps.add("5. Margin & Retention: Customer retention shifts to " + projRetention + "%, while operational overhead adjusts profit margin to " + projMargin + "%.");
                 traceSteps.add("6. Risk Assessment: Capital allocation risk evaluated at " + projRisk + "%.");
 
-                summary = "Marketing investment adjustment of " + spendChange + "% is projected to generate $" + projRevenue + " revenue with " + projMargin + "% profit margin and CAC of $" + projCac + ".";
+                summary = "Marketing investment adjustment of " + spendChange + "% is projected to generate ₹" + projRevenue + " revenue with " + projMargin + "% profit margin and CAC of ₹" + projCac + ".";
             }
             case PRICE_CHANGE -> {
                 BigDecimal priceChange = scenario.getPriceChangePercent() != null ? scenario.getPriceChangePercent() : BigDecimal.ZERO;
@@ -116,11 +116,11 @@ public class SimulationService {
                 projRisk = clamp(baseRisk.add(BigDecimal.valueOf(riskShift)), 0, 100);
 
                 traceSteps.add("3. Demand Elasticity: Price change of " + priceChange + "% causes an estimated demand volume response of " + BigDecimal.valueOf((demandShift - 1.0) * 100).setScale(1, RoundingMode.HALF_UP) + "%.");
-                traceSteps.add("4. Financial Impact: Revenue shifts to $" + projRevenue + " while unit profit margin adjusts to " + projMargin + "%.");
+                traceSteps.add("4. Financial Impact: Revenue shifts to ₹" + projRevenue + " while unit profit margin adjusts to " + projMargin + "%.");
                 traceSteps.add("5. Retention & Churn: Customer price sensitivity adjusts retention rate to " + projRetention + "%.");
                 traceSteps.add("6. Competitive Position: Pricing elasticity alters competitive risk index to " + projRisk + "%.");
 
-                summary = "Price change of " + priceChange + "% leads to projected revenue of $" + projRevenue + " and profit margin of " + projMargin + "%.";
+                summary = "Price change of " + priceChange + "% leads to projected revenue of ₹" + projRevenue + " and profit margin of " + projMargin + "%.";
             }
             case SUPPLIER_COST_CHANGE -> {
                 BigDecimal supplierChange = scenario.getSupplierCostChangePercent() != null ? scenario.getSupplierCostChangePercent() : BigDecimal.ZERO;
@@ -160,10 +160,10 @@ public class SimulationService {
                 projRisk = clamp(baseRisk.add(BigDecimal.valueOf(riskShift)), 0, 100);
 
                 traceSteps.add("3. Market Volume Response: External demand fluctuation creates a " + demandChange + "% volume shift in market intake.");
-                traceSteps.add("4. Operating Leverage: Revenue scales to $" + projRevenue + ", shifting profit margin to " + projMargin + "% due to fixed-cost absorption.");
+                traceSteps.add("4. Operating Leverage: Revenue scales to ₹" + projRevenue + ", shifting profit margin to " + projMargin + "% due to fixed-cost absorption.");
                 traceSteps.add("5. Operational Strain & Volatility: Operating capacity strain adjusts efficiency to " + projEfficiency + "% and risk to " + projRisk + "%.");
 
-                summary = "Demand shock of " + demandChange + "% results in projected revenue of $" + projRevenue + " and profit margin of " + projMargin + "%.";
+                summary = "Demand shock of " + demandChange + "% results in projected revenue of ₹" + projRevenue + " and profit margin of " + projMargin + "%.";
             }
         }
 

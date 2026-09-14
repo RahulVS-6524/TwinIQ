@@ -106,7 +106,7 @@ public class ScenarioComparisonService {
         }
 
         String synthesis = "Multi-scenario trade-off evaluation complete across " + items.size() + " options. "
-                + (bestRevId != null ? "Scenario #" + bestRevId + " yields optimal top-line revenue ($" + maxRev + "). " : "")
+                + (bestRevId != null ? "Scenario #" + bestRevId + " yields optimal top-line revenue (₹" + maxRev + "). " : "")
                 + (bestMarginId != null ? "Scenario #" + bestMarginId + " secures maximum profit margin (" + maxMargin + "%). " : "")
                 + (lowestRiskId != null ? "Scenario #" + lowestRiskId + " provides the safest capital risk profile (" + minRisk + "%)." : "");
 

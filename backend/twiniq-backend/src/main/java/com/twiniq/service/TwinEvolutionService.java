@@ -84,11 +84,11 @@ public class TwinEvolutionService {
         double overallAcc = Math.max(50.0, 100.0 - ((revErr * 0.6) + (marginErr * 2.0)));
         BigDecimal overallAccuracy = BigDecimal.valueOf(overallAcc).setScale(2, RoundingMode.HALF_UP);
 
-        String insight = "Empirical validation loop complete. Actual revenue ($" + actRev + ") compared with projected ($"
+        String insight = "Empirical validation loop complete. Actual revenue (₹" + actRev + ") compared with projected (₹"
                 + projRev + ") shows a " + (revVariance.compareTo(BigDecimal.ZERO) >= 0 ? "+" : "") + revVariance
                 + "% variance. Model accuracy verified at " + overallAccuracy + "%. Parameter elasticity updated.";
 
-        String calibration = "Live Business DNA updated with empirical outcome metrics (Revenue: $" + actRev
+        String calibration = "Live Business DNA updated with empirical outcome metrics (Revenue: ₹" + actRev
                 + ", Profit Margin: " + actMargin + "%). New cognitive Twin Snapshot recorded.";
 
         // Evolve live Business DNA

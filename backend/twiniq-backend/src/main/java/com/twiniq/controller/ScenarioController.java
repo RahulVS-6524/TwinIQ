@@ -7,6 +7,7 @@ import com.twiniq.service.ScenarioService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,6 +18,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/businesses/{businessId}/scenarios")
 @CrossOrigin(origins = "http://localhost:5173")
+@PreAuthorize("@businessSecurityService.canAccessBusiness(authentication, #businessId)")
 public class ScenarioController {
 
     private final ScenarioService scenarioService;

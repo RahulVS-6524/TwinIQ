@@ -7,6 +7,7 @@ import com.twiniq.service.ActualOutcomeService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/businesses/{businessId}/outcomes")
 @CrossOrigin(origins = "http://localhost:5173")
+@PreAuthorize("@businessSecurityService.canAccessBusiness(authentication, #businessId)")
 public class ActualOutcomeController {
 
     private final ActualOutcomeService actualOutcomeService;

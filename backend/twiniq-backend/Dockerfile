@@ -8,11 +8,11 @@ FROM maven:3.9-eclipse-temurin-17-alpine AS builder
 WORKDIR /app
 
 # Cache dependencies
-COPY pom.xml ./
+COPY backend/twiniq-backend/pom.xml ./pom.xml
 RUN mvn dependency:go-offline -B
 
 # Build application standalone JAR
-COPY src ./src
+COPY backend/twiniq-backend/src ./src
 RUN mvn clean package -DskipTests -B
 
 # --- STAGE 2: Lightweight Production Runtime ---

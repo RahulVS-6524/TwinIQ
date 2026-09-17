@@ -345,10 +345,17 @@ export default function App() {
     let res = await fetch(url, { ...options, headers });
     if (res.status === 401) {
       try {
+        let storedUser = null;
+        try {
+          storedUser = JSON.parse(localStorage.getItem("twiniq_user") || "null");
+        } catch (e) {}
+        const username = storedUser?.username || "rahul";
+        const password = username === "admin" ? "Admin@TwinIQ2026!" : "Rahul@TwinIQ2026!";
+
         const refreshRes = await fetch(`${API_BASE}/auth/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ usernameOrEmail: "rahul", password: "Rahul@TwinIQ2026!" }),
+          body: JSON.stringify({ usernameOrEmail: username, password }),
         });
         if (refreshRes.ok) {
           const authData = await refreshRes.json();
@@ -501,29 +508,53 @@ export default function App() {
       let outData = [];
       let evoData = [];
 
-      const bRes = await authFetch(`${API_BASE}/businesses/${bId}`);
-      if (bRes.ok) {
+      // Parallelize all module fetches concurrently for optimal performance and responsiveness
+      const [
+        bRes,
+        dnaRes,
+        histRes,
+        snapRes,
+        scenRes,
+        simRes,
+        recRes,
+        decRes,
+        outRes,
+        evoRes,
+        dashRes,
+      ] = await Promise.all([
+        authFetch(`${API_BASE}/businesses/${bId}`).catch(() => null),
+        authFetch(`${API_BASE}/businesses/${bId}/dna`).catch(() => null),
+        authFetch(`${API_BASE}/businesses/${bId}/dna/history`).catch(() => null),
+        authFetch(`${API_BASE}/businesses/${bId}/snapshots`).catch(() => null),
+        authFetch(`${API_BASE}/businesses/${bId}/scenarios`).catch(() => null),
+        authFetch(`${API_BASE}/businesses/${bId}/simulations`).catch(() => null),
+        authFetch(`${API_BASE}/businesses/${bId}/recommendations`).catch(() => null),
+        authFetch(`${API_BASE}/businesses/${bId}/decisions`).catch(() => null),
+        authFetch(`${API_BASE}/businesses/${bId}/outcomes`).catch(() => null),
+        authFetch(`${API_BASE}/businesses/${bId}/evolution`).catch(() => null),
+        authFetch(`${API_BASE}/businesses/${bId}/dashboard`).catch(() => null),
+      ]);
+
+      if (bRes && bRes.ok) {
         bData = await bRes.json();
         setBusiness(bData);
       }
 
-      const dnaRes = await authFetch(`${API_BASE}/businesses/${bId}/dna`);
-      if (dnaRes.ok) {
+      if (dnaRes && dnaRes.ok) {
         dData = await dnaRes.json();
         setDna(dData);
       }
 
-      const histRes = await authFetch(`${API_BASE}/businesses/${bId}/dna/history`);
-      if (histRes.ok) setDnaHistory(await histRes.json());
+      if (histRes && histRes.ok) {
+        setDnaHistory(await histRes.json());
+      }
 
-      const snapRes = await authFetch(`${API_BASE}/businesses/${bId}/snapshots`);
-      if (snapRes.ok) {
+      if (snapRes && snapRes.ok) {
         snapData = await snapRes.json();
         setSnapshots(snapData);
       }
 
-      const scenRes = await authFetch(`${API_BASE}/businesses/${bId}/scenarios`);
-      if (scenRes.ok) {
+      if (scenRes && scenRes.ok) {
         scData = await scenRes.json();
         setScenarios(scData);
         if (scData.length >= 2 && compareIds.length === 0) {
@@ -531,8 +562,7 @@ export default function App() {
         }
       }
 
-      const simRes = await authFetch(`${API_BASE}/businesses/${bId}/simulations`);
-      if (simRes.ok) {
+      if (simRes && simRes.ok) {
         simData = await simRes.json();
         setSimulations(simData);
         if (simData.length > 0 && !selectedSimulation) {
@@ -540,33 +570,28 @@ export default function App() {
         }
       }
 
-      const recRes = await authFetch(`${API_BASE}/businesses/${bId}/recommendations`);
-      if (recRes.ok) {
+      if (recRes && recRes.ok) {
         recData = await recRes.json();
         setRecommendations(recData);
       }
 
-      const decRes = await authFetch(`${API_BASE}/businesses/${bId}/decisions`);
-      if (decRes.ok) {
+      if (decRes && decRes.ok) {
         decData = await decRes.json();
         setDecisions(decData);
       }
 
-      const outRes = await authFetch(`${API_BASE}/businesses/${bId}/outcomes`);
-      if (outRes.ok) {
+      if (outRes && outRes.ok) {
         outData = await outRes.json();
         setOutcomes(outData);
       }
 
-      const evoRes = await authFetch(`${API_BASE}/businesses/${bId}/evolution`);
-      if (evoRes.ok) {
+      if (evoRes && evoRes.ok) {
         evoData = await evoRes.json();
         setEvolutions(evoData);
       }
 
       // Fetch dashboard endpoint or synthesize gracefully
-      const dashRes = await authFetch(`${API_BASE}/businesses/${bId}/dashboard`);
-      if (dashRes.ok) {
+      if (dashRes && dashRes.ok) {
         setDashboardData(await dashRes.json());
       } else {
         // Graceful client-side synthesis if backend has not been restarted yet

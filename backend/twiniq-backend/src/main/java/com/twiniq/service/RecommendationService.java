@@ -147,7 +147,7 @@ public class RecommendationService {
                 .toList();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public RecommendationResponse getBySimulationId(Long businessId, Long simulationId) {
         return recommendationRepository.findBySimulation_Id(simulationId)
                 .map(RecommendationResponse::fromEntity)

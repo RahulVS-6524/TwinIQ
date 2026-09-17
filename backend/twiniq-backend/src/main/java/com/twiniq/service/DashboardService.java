@@ -80,18 +80,18 @@ public class DashboardService {
         // Previous comparison baseline from snapshots
         TwinSnapshot prevSnap = null;
         if (!snapshots.isEmpty()) {
-            if (snapshots.size() > 1 && snapshots.get(0).getRevenue().compareTo(curRev) == 0) {
+            if (snapshots.size() > 1 && snapshots.get(0).getRevenue() != null && curRev != null && snapshots.get(0).getRevenue().compareTo(curRev) == 0) {
                 prevSnap = snapshots.get(1);
             } else {
                 prevSnap = snapshots.get(0);
             }
         }
 
-        BigDecimal prevRev = prevSnap != null ? prevSnap.getRevenue() : curRev;
-        BigDecimal prevMargin = prevSnap != null ? prevSnap.getProfitMargin() : curMargin;
-        BigDecimal prevRetention = prevSnap != null ? prevSnap.getCustomerRetention() : curRetention;
-        BigDecimal prevCac = prevSnap != null ? prevSnap.getCustomerAcquisitionCost() : curCac;
-        BigDecimal prevRisk = prevSnap != null ? prevSnap.getRiskLevel() : curRisk;
+        BigDecimal prevRev = (prevSnap != null && prevSnap.getRevenue() != null) ? prevSnap.getRevenue() : curRev;
+        BigDecimal prevMargin = (prevSnap != null && prevSnap.getProfitMargin() != null) ? prevSnap.getProfitMargin() : curMargin;
+        BigDecimal prevRetention = (prevSnap != null && prevSnap.getCustomerRetention() != null) ? prevSnap.getCustomerRetention() : curRetention;
+        BigDecimal prevCac = (prevSnap != null && prevSnap.getCustomerAcquisitionCost() != null) ? prevSnap.getCustomerAcquisitionCost() : curCac;
+        BigDecimal prevRisk = (prevSnap != null && prevSnap.getRiskLevel() != null) ? prevSnap.getRiskLevel() : curRisk;
 
         // Derived financial metrics
         BigDecimal curExpenses = curRev.multiply(BigDecimal.ONE.subtract(curMargin.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)))

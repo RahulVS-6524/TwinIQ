@@ -16,7 +16,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/businesses/{businessId}/dna")
-@CrossOrigin(origins = "http://localhost:5173")
 @PreAuthorize("@businessSecurityService.canAccessBusiness(authentication, #businessId)")
 public class BusinessDNAController {
 

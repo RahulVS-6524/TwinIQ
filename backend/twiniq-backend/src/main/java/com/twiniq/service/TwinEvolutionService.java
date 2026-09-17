@@ -52,24 +52,24 @@ public class TwinEvolutionService {
         }
 
         Decision decision = outcome.getDecision();
-        Simulation sim = decision.getSimulation();
+        Simulation sim = (decision != null) ? decision.getSimulation() : null;
 
-        BigDecimal projRev = sim.getProjectedRevenue();
-        BigDecimal actRev = outcome.getActualRevenue();
+        BigDecimal projRev = (sim != null && sim.getProjectedRevenue() != null) ? sim.getProjectedRevenue() : outcome.getActualRevenue();
+        BigDecimal actRev = outcome.getActualRevenue() != null ? outcome.getActualRevenue() : BigDecimal.ZERO;
         BigDecimal revVariance = BigDecimal.ZERO;
-        if (projRev != null && projRev.compareTo(BigDecimal.ZERO) > 0) {
+        if (projRev != null && projRev.compareTo(BigDecimal.ZERO) > 0 && actRev != null) {
             revVariance = actRev.subtract(projRev)
                     .divide(projRev, 4, RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100))
                     .setScale(2, RoundingMode.HALF_UP);
         }
 
-        BigDecimal projMargin = sim.getProjectedProfitMargin();
-        BigDecimal actMargin = outcome.getActualProfitMargin();
-        BigDecimal marginVariance = actMargin.subtract(projMargin != null ? projMargin : BigDecimal.ZERO)
+        BigDecimal projMargin = (sim != null && sim.getProjectedProfitMargin() != null) ? sim.getProjectedProfitMargin() : BigDecimal.ZERO;
+        BigDecimal actMargin = outcome.getActualProfitMargin() != null ? outcome.getActualProfitMargin() : BigDecimal.ZERO;
+        BigDecimal marginVariance = actMargin.subtract(projMargin)
                 .setScale(2, RoundingMode.HALF_UP);
 
-        BigDecimal projCac = sim.getProjectedCustomerAcquisitionCost();
+        BigDecimal projCac = (sim != null) ? sim.getProjectedCustomerAcquisitionCost() : null;
         BigDecimal actCac = outcome.getActualCustomerAcquisitionCost();
         BigDecimal cacVariance = BigDecimal.ZERO;
         if (projCac != null && projCac.compareTo(BigDecimal.ZERO) > 0 && actCac != null) {

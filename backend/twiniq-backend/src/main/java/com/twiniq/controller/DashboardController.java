@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/businesses/{businessId}/dashboard")
-@CrossOrigin(origins = "http://localhost:5173")
 @PreAuthorize("@businessSecurityService.canAccessBusiness(authentication, #businessId)")
 public class DashboardController {
 

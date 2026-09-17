@@ -12,6 +12,7 @@ import ExplainableAiChain from "./components/ExplainableAiChain";
 import EvolutionConvergence from "./components/EvolutionConvergence";
 import DnaConstellation from "./components/DnaConstellation";
 import TwinIqCompanion from "./components/TwinIqCompanion";
+import TargetPlanner from "./components/TargetPlanner";
 import {
   DashboardIcon,
   DnaIcon,
@@ -41,6 +42,8 @@ import {
   ForecastIcon,
   UploadIcon,
   AuditIcon,
+  TargetIcon,
+  SpeakerIcon,
 } from "./Icons";
 import { API_BASE } from "./config/api";
 
@@ -1160,6 +1163,20 @@ export default function App() {
               {!isSidebarCollapsed && <span className="sidebar-item-label">Trend Forecasting</span>}
               {!isSidebarCollapsed && <span className="sidebar-item-badge">New</span>}
             </button>
+
+            <button
+              className={`sidebar-item ${activeTab === "target-planner" ? "active" : ""}`}
+              onClick={() => switchTab("target-planner")}
+              title="Strategic Target Planner & Outcome Engine"
+            >
+              <span className="sidebar-item-icon"><TargetIcon /></span>
+              {!isSidebarCollapsed && <span className="sidebar-item-label">Target Planner</span>}
+              {!isSidebarCollapsed && (
+                <span className="sidebar-item-badge" style={{ background: "rgba(6, 182, 212, 0.2)", color: "#38BDF8" }}>
+                  AI Goals
+                </span>
+              )}
+            </button>
           </div>
 
           {/* SECTION 3: DECISION & EXECUTION PIPELINE */}
@@ -1389,6 +1406,47 @@ export default function App() {
             </div>
           )}
 
+          {/* TAB: STRATEGIC TARGET PLANNER & OUTCOME ENGINE */}
+          {activeTab === "target-planner" && (
+            <div className="tab-pane">
+              <TargetPlanner
+                business={business}
+                dna={dna}
+                scenarios={scenarios}
+                simulations={simulations}
+                dashboardData={dashboardData}
+                formatCurrency={formatCurrency}
+                formatPct={formatPct}
+                onNavigateTab={switchTab}
+                onTestScenarioInSimulator={({ scenarioType, changePercent }) => {
+                  setScenarioForm({
+                    scenarioType,
+                    changePercent: String(changePercent),
+                  });
+                  switchTab("scenarios");
+                }}
+                onCommitDecision={async ({ notes, status }) => {
+                  const payload = {
+                    scenarioId: scenarios?.[0]?.id || 1,
+                    simulationId: simulations?.[0]?.id || 1,
+                    decisionStatus: status || "APPROVED",
+                    decisionMaker: currentUser?.fullName || "Executive Strategist",
+                    notes,
+                  };
+                  const res = await authFetch(`${API_BASE}/businesses/${selectedBusinessId}/decisions`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                  });
+                  if (!res.ok) throw new Error(await res.text());
+                  const dec = await res.json();
+                  flashMessage(`Strategic Target Decision #${dec.id} recorded in Decision Ledger!`);
+                  refreshAllData(selectedBusinessId);
+                }}
+              />
+            </div>
+          )}
+
           {/* TAB 0: EXECUTIVE BI DASHBOARD */}
           {activeTab === "dashboard" && (
             <div className="tab-pane">
@@ -1450,6 +1508,34 @@ export default function App() {
               {/* Quick Action Launcher Bar */}
               <div className="dashboard-quick-actions">
                 <span className="qa-label">⚡ QUICK ACTIONS:</span>
+                <button
+                  onClick={() => switchTab("target-planner")}
+                  className="btn-quick-action"
+                  style={{ border: "1px solid rgba(6, 182, 212, 0.4)", background: "rgba(6, 182, 212, 0.12)", color: "#38BDF8" }}
+                >
+                  🎯 Target Planner (AI Goals)
+                </button>
+                <button
+                  onClick={() => {
+                    if (!("speechSynthesis" in window)) {
+                      alert("Web Speech is not supported in this browser.");
+                      return;
+                    }
+                    if (window.speechSynthesis.speaking) {
+                      window.speechSynthesis.cancel();
+                      return;
+                    }
+                    const text = `Executive Briefing for ${business?.businessName || "your enterprise"}. Composite health is ${Math.round(dashboardData?.overallHealthScore || 75)} percent, graded as ${dashboardData?.healthGrade || "HEALTHY"}. Operating revenue is holding at ${formatCurrency(dna?.revenue)}, with EBITDA margin of ${dna?.profitMargin} percent and customer retention of ${dna?.customerRetention} percent. ${dashboardData?.healthSummary || ""}`;
+                    const u = new SpeechSynthesisUtterance(text);
+                    u.rate = 1.0;
+                    window.speechSynthesis.speak(u);
+                  }}
+                  className="btn-quick-action"
+                  style={{ border: "1px solid rgba(139, 92, 246, 0.4)", background: "rgba(139, 92, 246, 0.12)", color: "#C4B5FD" }}
+                  title="Listen to Executive Audio Briefing"
+                >
+                  🎙️ Voice Briefing
+                </button>
                 <button onClick={() => switchTab("scenarios")} className="btn-quick-action">
                   🎯 Formulate What-If Scenario
                 </button>

@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import companionImg from "../assets/twiniq_companion.jpg";
-import { SparklesIcon, ShieldIcon, ActivityIcon, ChevronRightIcon, BrainIcon, SendIcon } from "../Icons";
+import { SparklesIcon, ShieldIcon, ActivityIcon, ChevronRightIcon, BrainIcon, SendIcon, SpeakerIcon, VolumeXIcon } from "../Icons";
 
 const PROMPT_CHIPS = [
+  { label: "🎯 Target Planner", query: "How do I plan future targets and milestones?" },
+  { label: "🎙️ Voice Brief", query: "Read me an executive voice briefing" },
   { label: "⚡ Margin Health", query: "Analyze our operating profit margin" },
   { label: "🛡️ Risk Radar", query: "What is our greatest strategic risk?" },
   { label: "🔮 Best Scenario", query: "Which scenario yields the highest return?" },
   { label: "📈 Price Elasticity", query: "Can we safely raise prices?" },
-  { label: "✨ Who are you?", query: "Who are you and what do you do?" },
 ];
 
 /**
@@ -42,8 +43,52 @@ export default function TwinIqCompanion({
   const [activeSpeech, setActiveSpeech] = useState("");
   const [isHovered, setIsHovered] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [chatInput, setChatInput] = useState("");
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
+
+  // Speech synthesis cleanup
+  useEffect(() => {
+    return () => {
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  const speakText = (text) => {
+    if (!("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    if (!text) {
+      setIsSpeaking(false);
+      return;
+    }
+    const cleanSpeech = text.replace(/[*_~`#]/g, "").replace(/₹/g, "Rupees ");
+    const utterance = new SpeechSynthesisUtterance(cleanSpeech);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.05;
+    const voices = window.speechSynthesis.getVoices();
+    const voice = voices.find(v => v.name.includes("Natural") || v.name.includes("Google") || v.name.includes("Samantha") || v.name.includes("Jenny") || v.name.includes("Zira"));
+    if (voice) utterance.voice = voice;
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const toggleVoice = () => {
+    if (!("speechSynthesis" in window)) {
+      alert("Speech synthesis is not supported on this browser.");
+      return;
+    }
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    } else {
+      const latestMsg = chatHistory[chatHistory.length - 1]?.text || activeSpeech || "AURA voice online.";
+      speakText(latestMsg);
+    }
+  };
 
   const initMargin = dna?.profitMargin ? `${parseFloat(dna.profitMargin).toFixed(1)}%` : "24.3%";
   const initRet = dna?.customerRetention ? `${parseFloat(dna.customerRetention).toFixed(1)}%` : "85.2%";
@@ -225,7 +270,19 @@ export default function TwinIqCompanion({
       return `The digital twin has logged ${evos} closed-loop self-learning evolutions. Empirical predictive accuracy is rated at 94.98%. Every time real-world financial reports are ingested, DNA parameters auto-tune to eliminate forecasting variance.`;
     }
 
-    // 11. Open Synthesis Fallback
+    // 11. Target Planner & Strategic Outcomes
+    if (/target|goal|plan|roadmap|backcast|future outcome|milestone/i.test(lower)) {
+      return `Our new Strategic Target Planner is active in the left navigation sidebar! It lets you specify your target revenue, profit margin, and customer retention over a 3 to 24 month horizon. The twin automatically backpropagates the 3-phase execution playbook, exact operational levers, and risk guardrails needed to reach your target.`;
+    }
+
+    // 12. Voice Briefing
+    if (/voice|speak|read|briefing|audio|listen/i.test(lower)) {
+      const audioOverview = `Executive status for ${bizName}. Operating margin is ${margin} and customer retention is ${ret}. Your digital twin is actively calibrated. Visit the Target Planner tab to simulate your strategic destination.`;
+      speakText(audioOverview);
+      return `Reading executive voice briefing aloud now. You can also click the 🎙️ Speaker button in my header to hear any response.`;
+    }
+
+    // 13. Open Synthesis Fallback
     return `Strategic query processed for ${bizName}: Cross-referencing Business DNA (Margin: ${margin}, Retention: ${ret}, CAC: ${cac}). The digital twin projects stable trajectory. You can simulate divergent timelines in the Scenario Lab or ask me to check specific risk vectors!`;
   };
 
@@ -500,9 +557,34 @@ export default function TwinIqCompanion({
               </div>
             </div>
 
-            <div className="companion-status-badge">
-              <ActivityIcon size={12} color="#10B981" />
-              <span>{isThinking ? "PROCESSING" : "OBSERVING"}</span>
+            <div className="companion-header-actions" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <button
+                type="button"
+                className={`companion-voice-toggle-btn ${isSpeaking ? "active-speech" : ""}`}
+                onClick={toggleVoice}
+                style={{
+                  background: isSpeaking ? "rgba(239, 68, 68, 0.2)" : "rgba(255, 255, 255, 0.06)",
+                  border: isSpeaking ? "1px solid #EF4444" : "1px solid rgba(255, 255, 255, 0.12)",
+                  borderRadius: "6px",
+                  padding: "4px 8px",
+                  color: isSpeaking ? "#F87171" : "#94A3B8",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  fontSize: "11px",
+                  fontWeight: "600",
+                }}
+                title={isSpeaking ? "Stop Voice" : "Listen to AURA Voice"}
+              >
+                {isSpeaking ? <VolumeXIcon size={12} /> : <SpeakerIcon size={12} />}
+                <span>{isSpeaking ? "Stop" : "Voice"}</span>
+              </button>
+
+              <div className="companion-status-badge">
+                <ActivityIcon size={12} color="#10B981" />
+                <span>{isThinking ? "PROCESSING" : "OBSERVING"}</span>
+              </div>
             </div>
 
             {mode === "dock" && (

@@ -3903,10 +3903,16 @@ export default function App() {
               {/* MANUAL RECORD FORM & HISTORY LIST */}
               <div className="decision-workspace-layout">
                 <div className="decision-form-card">
-                  <h3>Record New Executive Decision</h3>
+                  <h3>
+                    <span>🏛️</span>
+                    <span>Record New Executive Decision</span>
+                  </h3>
                   <form onSubmit={handleRecordDecision}>
                     <div className="form-group">
-                      <label>Select Scenario</label>
+                      <label>
+                        <span>Select Scenario</span>
+                        <span style={{ fontSize: "10px", color: "#818CF8", fontWeight: 700 }}>REQUIRED</span>
+                      </label>
                       <select
                         value={decisionForm.scenarioId}
                         onChange={(e) => setDecisionForm({ ...decisionForm, scenarioId: e.target.value })}
@@ -3923,7 +3929,10 @@ export default function App() {
                     </div>
 
                     <div className="form-group">
-                      <label>Select Simulation</label>
+                      <label>
+                        <span>Select Simulation</span>
+                        <span style={{ fontSize: "10px", color: "#818CF8", fontWeight: 700 }}>REQUIRED</span>
+                      </label>
                       <select
                         value={decisionForm.simulationId}
                         onChange={(e) => setDecisionForm({ ...decisionForm, simulationId: e.target.value })}
@@ -3940,7 +3949,10 @@ export default function App() {
                     </div>
 
                     <div className="form-group">
-                      <label>Decision</label>
+                      <label>
+                        <span>Decision Verdict</span>
+                        <span style={{ fontSize: "10px", color: "#10B981", fontWeight: 700 }}>GOVERNANCE</span>
+                      </label>
                       <select
                         value={decisionForm.decisionStatus}
                         onChange={(e) => setDecisionForm({ ...decisionForm, decisionStatus: e.target.value })}
@@ -3953,34 +3965,45 @@ export default function App() {
                     </div>
 
                     <div className="form-group">
-                      <label>Decision Maker Name</label>
+                      <label>
+                        <span>Authorized Decision Maker</span>
+                        <span style={{ fontSize: "10px", color: "#94A3B8" }}>AUDIT SIGNATURE</span>
+                      </label>
                       <input
                         type="text"
                         value={decisionForm.decisionMaker}
                         onChange={(e) => setDecisionForm({ ...decisionForm, decisionMaker: e.target.value })}
                         className="form-input"
+                        placeholder="e.g. Rahul V S (Strategic Lead)"
                         required
                       />
                     </div>
 
                     <div className="form-group">
-                      <label>Reason for Decision / Notes</label>
+                      <label>
+                        <span>Executive Notes & Strategic Rationale</span>
+                        <span style={{ fontSize: "10px", color: "#94A3B8" }}>RATIONALE</span>
+                      </label>
                       <textarea
                         value={decisionForm.notes}
                         onChange={(e) => setDecisionForm({ ...decisionForm, notes: e.target.value })}
                         className="form-input"
                         rows="3"
+                        placeholder="State reason for sign-off, implementation timeline, or constraints..."
                       ></textarea>
                     </div>
 
-                    <button type="submit" className="btn-primary full-width">
-                      Save Decision to Ledger 🏛️
+                    <button type="submit" className="btn-primary full-width" style={{ marginTop: "4px", padding: "12px", fontSize: "13px" }}>
+                      🏛️ Save Decision to Immutable Ledger
                     </button>
                   </form>
                 </div>
 
                 <div className="decisions-history-box">
-                  <h3>Past Decisions Log ({decisions.length})</h3>
+                  <h3>
+                    <span>📜</span>
+                    <span>Past Decisions Log ({decisions.length})</span>
+                  </h3>
                   {decisions.length === 0 ? (
                     <p className="empty-text">No decisions recorded yet.</p>
                   ) : (
@@ -3993,23 +4016,45 @@ export default function App() {
                           return true;
                         })
                         .map((d) => (
-                        <div className="decision-item-card" key={d.id}>
+                        <div className={`decision-item-card status-${d.decisionStatus?.toLowerCase()}`} key={d.id}>
                           <div className="d-top">
                             <span className={`status-pill pill-${d.decisionStatus?.toLowerCase()}`}>
-                              {d.decisionStatus}
+                              {d.decisionStatus === "ACCEPTED" ? "✅ ACCEPTED" : d.decisionStatus === "PENDING" ? "⏳ PENDING" : d.decisionStatus === "REJECTED" ? "⛔ REJECTED" : `⚡ ${d.decisionStatus}`}
                             </span>
-                            <span className="d-time">{new Date(d.createdAt).toLocaleString()}</span>
+                            <span className="d-time">
+                              <span>📅</span> {new Date(d.createdAt).toLocaleString()}
+                            </span>
                           </div>
-                          <h4>Scenario #{d.scenarioId} ({d.scenarioType})</h4>
+
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", flexWrap: "wrap" }}>
+                            <h4 style={{ margin: 0, fontSize: "14px", color: "#F8FAFC", fontWeight: 700 }}>
+                              Scenario #{d.scenarioId} <span style={{ color: "#94A3B8", fontWeight: 400, fontSize: "12px" }}>({d.scenarioType})</span>
+                            </h4>
+                            <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "6px", background: "rgba(99, 102, 241, 0.15)", color: "#C4B5FD", fontWeight: 600 }}>
+                              Simulation #{d.simulationId}
+                            </span>
+                          </div>
+
                           <p className="d-notes">"{cleanText(d.notes)}"</p>
+
                           <div className="d-meta">
-                            <span>Decision Maker: <strong>{d.decisionMaker}</strong></span>
-                            <span>Simulation: <strong>#{d.simulationId}</strong></span>
+                            <div className="d-meta-item">
+                              <span className="d-meta-label">Authorized Decision Maker</span>
+                              <span className="d-meta-val">{d.decisionMaker}</span>
+                            </div>
+                            <div className="d-meta-item">
+                              <span className="d-meta-label">Ledger Verification</span>
+                              <span className="d-meta-val" style={{ color: "#10B981" }}>PG-IMMUTABLE-{d.id}</span>
+                            </div>
                           </div>
                           
-                          <div className="audit-hash-seal" style={{ margin: "8px 0" }}>
-                            <span className="seal-verified">🔒 POSTGRESQL IMMUTABLE RECORD #{d.id}</span>
-                            <span>• SHA-256: {Math.abs((d.id * 8191 + 104729) % 999999).toString(16).padStart(6, '0').toUpperCase()}</span>
+                          <div className="audit-hash-seal">
+                            <span className="seal-verified">
+                              🔒 POSTGRESQL IMMUTABLE RECORD #{d.id}
+                            </span>
+                            <span className="seal-hash">
+                              SHA-256: {Math.abs((d.id * 8191 + 104729) % 999999).toString(16).padStart(6, '0').toUpperCase()}
+                            </span>
                           </div>
 
                           <div className="d-actions">

@@ -7790,3 +7790,368 @@ input[type="range"] {
   box-shadow: 0 6px 18px rgba(139, 92, 246, 0.45);
 }
 
+
+
+/* ==========================================================================
+   EXECUTIVE DECISION & OUTCOMES WORKSPACE CLEAN ALIGNMENT & DESIGN
+   ========================================================================== */
+
+.decision-workspace-layout,
+.outcomes-workspace-layout {
+  display: grid;
+  grid-template-columns: 440px 1fr;
+  gap: 24px;
+  align-items: start;
+  margin-top: 18px;
+}
+
+@media (max-width: 1100px) {
+  .decision-workspace-layout,
+  .outcomes-workspace-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Decision & Outcome Form Cards */
+.decision-form-card,
+.outcome-form-card {
+  background: #0E121C;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.decision-form-card h3,
+.outcome-form-card h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #F8FAFC;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.decision-form-card form,
+.outcome-form-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.decision-form-card .form-group,
+.outcome-form-card .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.decision-form-card label,
+.outcome-form-card label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #CBD5E1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.decision-form-card .form-input,
+.outcome-form-card .form-input,
+.decision-form-card select.form-input,
+.outcome-form-card select.form-input,
+.decision-form-card textarea.form-input,
+.outcome-form-card textarea.form-input {
+  background: rgba(15, 23, 42, 0.8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 8px !important;
+  padding: 10px 14px !important;
+  color: #F8FAFC !important;
+  font-size: 13px !important;
+  transition: all 0.2s ease !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.decision-form-card .form-input:focus,
+.outcome-form-card .form-input:focus {
+  outline: none !important;
+  border-color: #8B5CF6 !important;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25) !important;
+  background: rgba(15, 23, 42, 0.95) !important;
+}
+
+/* History Boxes */
+.decisions-history-box,
+.outcomes-history-table {
+  background: #0E121C;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.decisions-history-box h3,
+.outcomes-history-table h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #F8FAFC;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.decisions-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Individual Decision Item Card */
+.decision-item-card {
+  background: rgba(20, 26, 41, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 4px solid #6366F1;
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all 0.2s ease;
+}
+
+.decision-item-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(99, 102, 241, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.decision-item-card.status-accepted { border-left-color: #10B981; }
+.decision-item-card.status-pending { border-left-color: #F59E0B; }
+.decision-item-card.status-rejected { border-left-color: #EF4444; }
+.decision-item-card.status-modified { border-left-color: #8B5CF6; }
+
+/* Decision Top Row: Status Pill & Timestamp */
+.d-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 4px;
+}
+
+.d-time {
+  font-size: 12px;
+  color: #94A3B8;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Status Pill Styling */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.status-pill.pill-accepted,
+.status-pill.pill-approved {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34D399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.status-pill.pill-pending {
+  background: rgba(245, 158, 11, 0.18);
+  color: #FBBF24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.status-pill.pill-rejected {
+  background: rgba(239, 68, 68, 0.18);
+  color: #F87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.status-pill.pill-modified {
+  background: rgba(139, 92, 246, 0.18);
+  color: #C4B5FD;
+  border: 1px solid rgba(139, 92, 246, 0.35);
+}
+
+/* Decision Notes */
+.d-notes {
+  background: rgba(99, 102, 241, 0.07);
+  border-left: 3px solid #6366F1;
+  border-radius: 0 8px 8px 0;
+  padding: 10px 14px;
+  margin: 0;
+  color: #CBD5E1;
+  font-size: 13px;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+/* Decision Meta 2-Column Grid */
+.d-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+@media (max-width: 500px) {
+  .d-meta {
+    grid-template-columns: 1fr;
+  }
+}
+
+.d-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.d-meta-label {
+  font-size: 10px;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+
+.d-meta-val {
+  font-size: 13px;
+  font-weight: 600;
+  color: #E2E8F0;
+}
+
+/* Cryptographic Audit Hash Seal */
+.audit-hash-seal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  color: #94A3B8;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px dashed rgba(99, 102, 241, 0.3);
+}
+
+.audit-hash-seal .seal-verified {
+  color: #10B981;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.audit-hash-seal .seal-hash {
+  color: #A5B4FC;
+  background: rgba(99, 102, 241, 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+/* Decision Actions Row */
+.d-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 2px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Action Button Small */
+.btn-action-small {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34D399;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-action-small:hover {
+  background: #10B981;
+  color: #FFFFFF;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+}
+
+/* Data Table Clean Styling for Outcomes */
+.data-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+.data-table th {
+  background: rgba(0, 0, 0, 0.35);
+  color: #94A3B8;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.data-table th:first-child { border-top-left-radius: 8px; }
+.data-table th:last-child { border-top-right-radius: 8px; }
+
+.data-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: #E2E8F0;
+  vertical-align: middle;
+}
+
+.data-table tr:hover td {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.data-table tr:last-child td {
+  border-bottom: none;
+}
+

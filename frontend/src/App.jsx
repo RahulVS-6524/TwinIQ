@@ -13,6 +13,7 @@ import EvolutionConvergence from "./components/EvolutionConvergence";
 import DnaConstellation from "./components/DnaConstellation";
 import TwinIqCompanion from "./components/TwinIqCompanion";
 import TargetPlanner from "./components/TargetPlanner";
+import EnterpriseRiskRadar from "./components/EnterpriseRiskRadar";
 import {
   DashboardIcon,
   DnaIcon,
@@ -4635,111 +4636,17 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 10: ENTERPRISE RISK RADAR */}
+          {/* TAB 10: ENTERPRISE RISK RADAR & EXPOSURE MATRIX */}
           {activeTab === "risks" && (
-            <div className="tab-pane">
-              {/* CINEMATIC RISKS HEADER */}
-              <div className="cinematic-tab-header">
-                <div className="cinematic-header-left">
-                  <span className="cinematic-header-badge badge-risk">🛡️ ENTERPRISE THREAT RADAR</span>
-                  <h1 className="cinematic-header-title">
-                    Enterprise Risk Radar & <span className="gradient-text">Exposure Matrix</span>
-                  </h1>
-                  <p className="cinematic-header-sub">
-                    Continuous threat telemetry for #{selectedBusinessId} {business?.businessName}.
-                    Monitors customer churn elasticity, supplier inflation exposure, working capital runway, and competitive pressure.
-                  </p>
-                </div>
-                <div className="cinematic-header-actions">
-                  <button
-                    className="cinematic-voice-btn"
-                    onClick={() => {
-                      if (!("speechSynthesis" in window)) return;
-                      const text = `Enterprise risk radar for ${business?.businessName || "your company"}. Composite risk level is ${dna?.riskLevel || 35} percent. Primary exposure is supplier inflation margin squeeze. Recommend testing a pricing hedge in the simulator.`;
-                      window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
-                    }}
-                    title="Audio Risk Briefing"
-                  >
-                    🎙️ Risk Audio
-                  </button>
-                  <span className="sidebar-item-badge" style={{ background: "rgba(239, 68, 68, 0.2)", color: "#F87171", padding: "6px 12px", borderRadius: "8px" }}>
-                    Risk: {dna?.riskLevel || 35}/100
-                  </span>
-                </div>
-              </div>
-
-              <div className="card-grid">
-                {/* Vector 1 */}
-                <div className="standard-card">
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "12px", fontWeight: 800, color: "var(--danger)", textTransform: "uppercase" }}>
-                      Market Shock Volatility
-                    </span>
-                    <span className="status-pill pill-rejected">
-                      {dna?.riskLevel > 50 ? "Elevated" : "Moderate"}
-                    </span>
-                  </div>
-                  <h3 style={{ fontSize: "16px", fontWeight: 800 }}>Demand Elasticity Exposure</h3>
-                  <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.4 }}>
-                    Current structural risk level is calibrated at <strong>{dna?.riskLevel || 35}%</strong>. In severe demand contractions, operating margins could compress by up to 4.2 percentage points.
-                  </p>
-                  <div style={{ background: "var(--bg-subtle)", padding: "10px 14px", borderRadius: "8px", fontSize: "12px" }}>
-                    <strong>Recommended Hedge:</strong> Maintain baseline customer retention above 80% to absorb demand fluctuations.
-                  </div>
-                </div>
-
-                {/* Vector 2 */}
-                <div className="standard-card">
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "12px", fontWeight: 800, color: "var(--warning)", textTransform: "uppercase" }}>
-                      Supply Chain Cost Shift
-                    </span>
-                    <span className="status-pill pill-modified">Medium Priority</span>
-                  </div>
-                  <h3 style={{ fontSize: "16px", fontWeight: 800 }}>Vendor Inflation Margin Squeeze</h3>
-                  <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.4 }}>
-                    Current operating margin is <strong>{formatPct(dna?.profitMargin)}</strong>. A 10% increase in supplier procurement cost would decrease margin by ~2.8 pts without pricing pass-through.
-                  </p>
-                  <div style={{ background: "var(--bg-subtle)", padding: "10px 14px", borderRadius: "8px", fontSize: "12px" }}>
-                    <strong>Recommended Hedge:</strong> Formulate a +5% to +10% price adjustment what-if scenario in the simulator.
-                  </div>
-                </div>
-
-                {/* Vector 3 */}
-                <div className="standard-card">
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "12px", fontWeight: 800, color: "var(--primary)", textTransform: "uppercase" }}>
-                      Customer Acquisition Friction
-                    </span>
-                    <span className="status-pill pill-accepted">Controlled</span>
-                  </div>
-                  <h3 style={{ fontSize: "16px", fontWeight: 800 }}>CAC Payback Ceiling</h3>
-                  <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.4 }}>
-                    Customer acquisition cost is measured at <strong>{formatCurrency(dna?.customerAcquisitionCost)}</strong> against an industry threshold of ₹1,500. Retention stands at <strong>{formatPct(dna?.customerRetention)}</strong>.
-                  </p>
-                  <div style={{ background: "var(--bg-subtle)", padding: "10px 14px", borderRadius: "8px", fontSize: "12px" }}>
-                    <strong>Recommended Hedge:</strong> Focus marketing allocation towards referral-driven, high-LTV acquisition cohorts.
-                  </div>
-                </div>
-
-                {/* Vector 4 */}
-                <div className="standard-card">
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "12px", fontWeight: 800, color: "var(--success)", textTransform: "uppercase" }}>
-                      Operational Buffer
-                    </span>
-                    <span className="status-pill pill-accepted">Resilient</span>
-                  </div>
-                  <h3 style={{ fontSize: "16px", fontWeight: 800 }}>Organizational Safety Runway</h3>
-                  <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.4 }}>
-                    Operational efficiency score is <strong>{dna?.operationalEfficiency || 78}/100</strong> and financial stability index is <strong>{dna?.financialStability || 82}/100</strong>.
-                  </p>
-                  <div style={{ background: "var(--bg-subtle)", padding: "10px 14px", borderRadius: "8px", fontSize: "12px" }}>
-                    <strong>Recommended Hedge:</strong> Reinvest operational savings into digital automation to sustain current high margins.
-                  </div>
-                </div>
-              </div>
-            </div>
+            <EnterpriseRiskRadar
+              business={business}
+              dna={dna}
+              selectedBusinessId={selectedBusinessId}
+              formatCurrency={formatCurrency}
+              formatPct={formatPct}
+              onNavigateTab={switchTab}
+              flashMessage={flashMessage}
+            />
           )}
 
           {/* TAB 11: STRATEGIC OPPORTUNITY RADAR */}

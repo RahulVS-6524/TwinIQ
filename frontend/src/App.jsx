@@ -1529,10 +1529,13 @@ export default function App() {
           {activeTab === "forecast" && (
             <div className="tab-pane">
               <ForecastView
+                business={business}
                 dna={dna}
                 snapshots={snapshots}
                 formatCurrency={formatCurrency}
                 formatPct={formatPct}
+                onNavigateTab={switchTab}
+                flashMessage={flashMessage}
               />
             </div>
           )}

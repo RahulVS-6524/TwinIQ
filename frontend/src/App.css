@@ -7053,3 +7053,345 @@ input[type="range"] {
   cursor: not-allowed;
 }
 
+
+
+/* ==========================================================================
+   CINEMATIC INTERACTIVE UI FOR SIDEBAR TABS
+   ========================================================================== */
+
+.cinematic-tab-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 28px;
+  background: linear-gradient(135deg, rgba(20, 26, 41, 0.85) 0%, rgba(14, 18, 28, 0.95) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.22);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.cinematic-tab-header::before {
+  content: "";
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.cinematic-header-left {
+  max-width: 820px;
+}
+
+.cinematic-header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.badge-dna {
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  color: #C4B5FD;
+}
+
+.badge-scenario {
+  background: rgba(6, 182, 212, 0.15);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  color: #38BDF8;
+}
+
+.badge-compare {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #FBBF24;
+}
+
+.badge-sim {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34D399;
+}
+
+.badge-rec {
+  background: rgba(236, 72, 153, 0.15);
+  border: 1px solid rgba(236, 72, 153, 0.35);
+  color: #F472B6;
+}
+
+.badge-dec {
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  color: #A5B4FC;
+}
+
+.badge-outcome {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34D399;
+}
+
+.badge-evo {
+  background: rgba(139, 92, 246, 0.18);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  color: #DDD6FE;
+}
+
+.badge-risk {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #F87171;
+}
+
+.badge-opp {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #FBBF24;
+}
+
+.cinematic-header-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #F8FAFC;
+  line-height: 1.25;
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
+}
+
+.cinematic-header-sub {
+  font-size: 13px;
+  color: #94A3B8;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.cinematic-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.cinematic-voice-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9px;
+  color: #CBD5E1;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cinematic-voice-btn:hover {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.35);
+  color: #FFFFFF;
+}
+
+.cinematic-voice-btn.speaking {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #EF4444;
+  color: #F87171;
+}
+
+/* Subnav pill switchers */
+.cinematic-subnav-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.cinematic-pills {
+  display: inline-flex;
+  gap: 4px;
+  background: rgba(8, 11, 18, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.cinematic-pill-btn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #94A3B8;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cinematic-pill-btn:hover {
+  color: #FFFFFF;
+}
+
+.cinematic-pill-btn.active {
+  background: #8B5CF6;
+  color: #FFFFFF;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.4);
+}
+
+.cinematic-pill-btn.active.cyan {
+  background: #06B6D4;
+  color: #08090D;
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.4);
+}
+
+.cinematic-pill-btn.active.emerald {
+  background: #10B981;
+  color: #08090D;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+}
+
+/* DNA Sensitivity Sandbox */
+.dna-sensitivity-sandbox {
+  background: #0E121C;
+  border: 1px solid rgba(6, 182, 212, 0.25);
+  border-radius: 14px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sandbox-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sandbox-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #F1F5F9;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sandbox-tagline {
+  font-size: 12px;
+  color: #64748B;
+}
+
+.sandbox-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr) 190px;
+  gap: 18px;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .sandbox-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sandbox-slider-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.slider-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: #CBD5E1;
+}
+
+.slider-val-tag {
+  color: #38BDF8;
+  font-weight: 700;
+}
+
+.sandbox-result-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+}
+
+.sandbox-score-num {
+  font-size: 24px;
+  font-weight: 800;
+  color: #10B981;
+}
+
+.sandbox-score-sub {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748B;
+  letter-spacing: 0.06em;
+}
+
+/* Preset Action Chips */
+.preset-chips-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.preset-chip-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-right: 4px;
+}
+
+.scenario-preset-chip {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 5px 12px;
+  color: #CBD5E1;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.scenario-preset-chip:hover {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.35);
+  color: #FFFFFF;
+  transform: translateY(-1px);
+}
+
